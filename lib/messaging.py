@@ -20,6 +20,87 @@ messageID = MessageID()
 class InvalidMessageProperty(Exception):
     pass
 
+class MessageReceiver(object):
+    '''generic message receiver class that game object inherits from'''
+    # message types this message receiver will subscribe to
+    subscriptions = []
+    def __init__(self):
+        pass
+    def handleMessage(self, msg):
+        '''handles a message received
+            returns: True if a message is consumed
+        ''' 
+        # see if this mssage receiver implements a handler for this msg
+        method = 'handle_' + msg.messageType
+        if hasattr(self, method):
+            return getattr(self, method)(msg)
+        else:
+            return False
+        
+class Message(object):
+    '''generic message class'''
+    properties= []
+    _LOG_LEVEL = 0
+    def __init__(self, sender=None, receiverID=None, **kws):
+        self._properties = dict( (x, None) for x in self.properties )
+        for name, value in kws.items():
+            self.lazySetProperty(name, value)
+        self.sender = sender
+        self.gid = messageID.next()
+        self.receiverID = receiverID
+    def __repr__(self):
+        return 'Message %s %s' % (self.messageType, self.gid)
+    @property
+    def messageType(self):
+        return self.__class__.__name__
+    def getSender(self):
+        return self.sender
+    def lazySetProperty(self, name, value):
+        '''this does same as setProperty, without validation'''
+        self._properties[name] = self.pack_property(name, value)        
+    def setProperty(self, name, value):
+        '''set required property of the message'''
+        if name not in self.properties:
+            raise InvalidMessageProperty('Invalid Message Property: %s' % name)
+        self._properties[name] = self.pack_property(name, value)
+    def getProperty(self, name, default=None):
+        if name not in self.properties:
+            raise InvalidMessageProperty('Invalid Message Property: %s' % name)
+        if not self._properties[name] is None:
+            return self.unpack_property(name, self._properties[name])
+        else:
+            return default
+    def pack_property(self, name, value):
+        '''how to store this property for network message'''
+        packMethod = 'pack_' + name
+        if hasattr(self, packMethod):
+            return getattr(self, packMethod)(value)
+        else:
+            return value
+    def unpack_property(self, name, value):
+        '''how to unpack the stored message from network'''
+        unpackMethod = 'unpack_' + name
+        if hasattr(self, unpackMethod):
+            return getattr(self, unpackMethod)(value)
+        else:
+            return value
+    def validate(self):
+        '''returns true if this message is valid with the given properties
+                false otherwise
+        '''
+        if set(self._properties.keys()) ^ set(self.properties):
+            raise InvalidMessageProperty('Message %s received invalid properties: %s' % (self.messageType, list(set(self._properties.keys()) ^ set(self.properties))))
+        return True
+    def onReceipt(self, *args, **kws):
+        '''abstract method to be implemented with application
+            defines behavior when the message is received
+        '''
+        pass
+    def __getstate__(self):
+        return dict( [(i,v) for i,v in self.__dict__.items() if i in ('gid', 'properties', '_properties', 'receiverID')] )
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+
 class MessageManager(util.Singleton):
     '''generic message manager singleton class that game object manager inherits from'''
     def init(self):
@@ -170,85 +251,4 @@ class MessageManager(util.Singleton):
         self.messageReceiverMap = {WildCardMessageType: []}
         self.activeQueue = deque()
         self.processingQueue = deque()
-
-class Message(object):
-    '''generic message class'''
-    properties= []
-    _LOG_LEVEL = 0
-    def __init__(self, sender=None, receiverID=None, **kws):
-        self._properties = dict( (x, None) for x in self.properties )
-        for name, value in kws.items():
-            self.lazySetProperty(name, value)
-        self.sender = sender
-        self.gid = messageID.next()
-        self.receiverID = receiverID
-    def __repr__(self):
-        return 'Message %s %s' % (self.messageType, self.gid)
-    @property
-    def messageType(self):
-        return self.__class__.__name__
-    def getSender(self):
-        return self.sender
-    def lazySetProperty(self, name, value):
-        '''this does same as setProperty, without validation'''
-        self._properties[name] = self.pack_property(name, value)        
-    def setProperty(self, name, value):
-        '''set required property of the message'''
-        if name not in self.properties:
-            raise InvalidMessageProperty('Invalid Message Property: %s' % name)
-        self._properties[name] = self.pack_property(name, value)
-    def getProperty(self, name, default=None):
-        if name not in self.properties:
-            raise InvalidMessageProperty('Invalid Message Property: %s' % name)
-        if not self._properties[name] is None:
-            return self.unpack_property(name, self._properties[name])
-        else:
-            return default
-    def pack_property(self, name, value):
-        '''how to store this property for network message'''
-        packMethod = 'pack_' + name
-        if hasattr(self, packMethod):
-            return getattr(self, packMethod)(value)
-        else:
-            return value
-    def unpack_property(self, name, value):
-        '''how to unpack the stored message from network'''
-        unpackMethod = 'unpack_' + name
-        if hasattr(self, unpackMethod):
-            return getattr(self, unpackMethod)(value)
-        else:
-            return value
-    def validate(self):
-        '''returns true if this message is valid with the given properties
-                false otherwise
-        '''
-        if set(self._properties.keys()) ^ set(self.properties):
-            raise InvalidMessageProperty('Message %s received invalid properties: %s' % (self.messageType, list(set(self._properties.keys()) ^ set(self.properties))))
-        return True
-    def onReceipt(self, *args, **kws):
-        '''abstract method to be implemented with application
-            defines behavior when the message is received
-        '''
-        pass
-    def __getstate__(self):
-        return dict( [(i,v) for i,v in self.__dict__.items() if i in ('gid', 'properties', '_properties', 'receiverID')] )
-    def __setstate__(self, d):
-        self.__dict__.update(d)
-
-class MessageReceiver(object):
-    '''generic message receiver class that game object inherits from'''
-    # message types this message receiver will subscribe to
-    subscriptions = []
-    def __init__(self):
-        pass
-    def handleMessage(self, msg):
-        '''handles a message received
-            returns: True if a message is consumed
-        ''' 
-        # see if this mssage receiver implements a handler for this msg
-        method = 'handle_' + msg.messageType
-        if hasattr(self, method):
-            return getattr(self, method)(msg)
-        else:
-            return False
           
