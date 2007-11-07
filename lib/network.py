@@ -1,3 +1,7 @@
+# network.py
+# Credits:
+#   this module uses pyraknet and consequently the underlying RakNet networking
+#   library.  
 import pyraknet
 
 class Error(Exception):
