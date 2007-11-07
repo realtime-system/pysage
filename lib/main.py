@@ -2,6 +2,7 @@ import subprocess
 import sys
 import pyraknet
 import time
+from messaging import *
 from network import *
 
 SERVER_PORT = 1000
@@ -22,6 +23,10 @@ if len(sys.argv) == 1:
     s.set_callback(100, incoming_test_packet)
     s.listen(port=SERVER_PORT, max_players=8)
     
+    # create the message manager for the main process
+    messageManager = MessageManager()
+    
+    # spawn child processes
     p1 = subprocess.Popen([sys.executable, sys.argv[0], 'render'])
     print 'created render process %s' % p1
     p2 = subprocess.Popen([sys.executable, sys.argv[0], 'physics'])
@@ -40,6 +45,9 @@ else:
     # first create the client network
     c = Network()
     c.connect(host='localhost', port=SERVER_PORT)
+    
+    # create the message manager for the child process
+    messageManager = MessageManager()
     
     # then go into client main loop
     while True:
