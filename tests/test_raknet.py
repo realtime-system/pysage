@@ -28,7 +28,7 @@ class TestNetwork(object):
             
         # let this run for 5 secs
         startTime = time.time()
-        while time.time() - startTime < 5.0:
+        while time.time() - startTime < 2.0:
             time.sleep(0.1)
             s.poll()
             data = '%c%s' % (100,  'a' * 1024*1024)

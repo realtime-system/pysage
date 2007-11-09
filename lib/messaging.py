@@ -129,7 +129,7 @@ class MessageManager(util.Singleton):
         # swap queues and clear the activeQueue
         self.activeQueue, self.processingQueue = self.processingQueue, self.activeQueue
         self.activeQueue.clear()
-        startTime = time.clock()
+        startTime = time.time()
         while len(self.processingQueue):
             # always pop the message off the queue, if there is no listeners for this message yet
             # then the message will be dropped off the queue
@@ -144,7 +144,7 @@ class MessageManager(util.Singleton):
                 # finish this message if it was handled or had designated receiver
                 if r.handleMessage(msg) or msg.receiverID:
                     break
-            if maxTime and time.clock() - startTime > maxTime:
+            if maxTime and time.time() - startTime > maxTime:
                 break
             
         flushed = len(self.processingQueue) == 0

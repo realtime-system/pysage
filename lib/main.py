@@ -5,7 +5,7 @@ import time
 from messaging import *
 from network import *
 
-SERVER_PORT = 1000
+SERVER_PORT = 8000
 
 # Server:
 # if i'm the main process, then i will spawn a defined number of subprocesses
