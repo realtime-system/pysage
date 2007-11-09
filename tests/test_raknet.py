@@ -19,14 +19,16 @@ class TestNetwork(object):
         s = Network()
         s.set_callback(pyraknet.PacketTypes.ID_NEW_INCOMING_CONNECTION, lambda packet, server=s: incoming_connection(packet, server))
         s.set_callback(100, incoming_test_packet)
-        help(s.listen)
         s.listen(port=8000, max_players=8)
         count = 5
         c = {}
         for i in range(count):
             c[i] = Network()
             c[i].connect(host='localhost', port=8000)
-        while 1:
+            
+        # let this run for 5 secs
+        startTime = time.time()
+        while time.time() - startTime < 5.0:
             time.sleep(0.1)
             s.poll()
             data = '%c%s' % (100,  'a' * 1024*1024)
