@@ -13,7 +13,6 @@ class System(MessageManager):
         self.network.set_callback(100, self.incoming_test_packet)
         # give a name
         self._system_name = ''
-    # first create the network server in the main process
     def incoming_connection(self, packet):
         print 'incoming connection from address: %s' % packet.address
         print 'incoming connection player: %s' % packet.player
