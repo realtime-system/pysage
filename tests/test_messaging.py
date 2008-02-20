@@ -5,7 +5,7 @@ pth = os.getcwd()
 if pth not in sys.path:
     sys.path.append(pth)
     
-from lib.messaging import *
+from pysage.messaging import *
 import py
 import time
 
