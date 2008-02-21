@@ -9,6 +9,7 @@ class ObjectManager(MessageManager):
         self.objectIDMap = {}
         self.objectNameMap = {}
     def find(self, name):
+        '''returns an object by its name, None if not found'''
         return self.getObjectByName(name)
     def getObject(self, id):
         return self.objectIDMap.get(id, None)
