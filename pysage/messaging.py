@@ -25,7 +25,9 @@ class MessageReceiver(object):
     # message types this message receiver will subscribe to
     subscriptions = []
     def __init__(self):
-        pass
+        # default update priority is 0
+        # determines which object is synced first during update
+        self._SYNC_PRIORITY = 0       
     def handleMessage(self, msg):
         '''handles a message received
             returns: True if a message is consumed
@@ -36,6 +38,11 @@ class MessageReceiver(object):
             return getattr(self, method)(msg)
         else:
             return False
+    def update(self, evt=None):
+        pass
+    @property
+    def gid(self):
+        return id(self)
         
 class Message(object):
     '''generic message class'''

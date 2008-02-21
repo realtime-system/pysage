@@ -1,10 +1,5 @@
 # test_messaging.py
 # unit test that excercises the messaging system
-import sys, os
-pth = os.getcwd()
-if pth not in sys.path:
-    sys.path.append(pth)
-    
 from pysage.messaging import *
 import py
 import time
