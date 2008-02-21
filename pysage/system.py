@@ -36,6 +36,7 @@ class ObjectManager(MessageManager):
         self.objectIDMap[obj.gid] = obj
         if name:
             self.objectNameMap[name] = obj
+        return obj
     def unregisterObject(self, obj):
         MessageManager.unregisterReceiver(self, obj)
         del self.objectIDMap[obj.gid]
