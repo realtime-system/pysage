@@ -197,7 +197,6 @@ class MessageManager(util.Singleton):
             return False
         # Here we need to gracefully handle messages of type that isn't subscribed by any receivers
         if not self.messageReceiverMap.has_key(msg.messageType) and not self.messageReceiverMap[WildCardMessageType]:
-            print 'KeyError: Message type "%s" does not have any subscribers.  Debug: %s' % (msg.messageType, self.messageReceiverMap)
             return False
         else:
             self.activeQueue.append(msg)
@@ -215,7 +214,7 @@ class MessageManager(util.Singleton):
         map(lambda x: x.handleMessage(msg), self.messageReceiverMap[WildCardMessageType])
         # Now loop thru the receivers that actually subscribed to this particular message type
         processed = False
-        for r in self.messageReceiverMap[msg.messageType]:
+        for r in self.messageReceiverMap.get(msg.messageType, []):
             if r.handleMessage(msg):
                 processed = True
         return processed
