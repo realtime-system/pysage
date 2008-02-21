@@ -8,6 +8,8 @@ class ObjectManager(MessageManager):
         MessageManager.init(self)
         self.objectIDMap = {}
         self.objectNameMap = {}
+    def find(self, name):
+        return self.getObjectByName(name)
     def getObject(self, id):
         return self.objectIDMap.get(id, None)
     def getObjectByName(self, name):
