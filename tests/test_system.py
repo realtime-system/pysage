@@ -5,7 +5,7 @@ from pysage.system import *
 import py
 import time
 
-gameObjectManager = ObjectManager.getSingleton()
+gameObjectManager = ObjectManager.get_singleton()
 
 class TakeDamage(Message):
     properties = ['damageAmount']

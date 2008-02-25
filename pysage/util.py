@@ -9,7 +9,7 @@ class Singleton(object):
         it.init(*args, **kwds)
         return it
     @classmethod
-    def getSingleton(cls, *args, **kwds):
+    def get_singleton(cls, *args, **kwds):
         it = cls.__dict__.get("__it__")
         if it is not None:
             return it
