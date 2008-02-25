@@ -10,15 +10,15 @@ class ObjectManager(MessageManager):
         self.objectNameMap = {}
     def find(self, name):
         '''returns an object by its name, None if not found'''
-        return self.getObjectByName(name)
-    def getObject(self, id):
+        return self.get_object_by_name(name)
+    def get_object(self, id):
         return self.objectIDMap.get(id, None)
-    def getObjectByName(self, name):
+    def get_object_by_name(self, name):
         return self.objectNameMap.get(name, None)
     @property
     def objects(self):
         return self.objectIDMap.values()
-    def triggerToObject(self, id, msg):
+    def trigger_to_object(self, id, msg):
         '''sends a particular game object a message if that game object implements this message type
             returns True: if event was consumed
                     False: otherwise
@@ -27,17 +27,17 @@ class ObjectManager(MessageManager):
         for recr in self.messageReceiverMap[WildCardMessageType]:
             recr.handleMessage(msg)
         return obj.handleMessage(msg)
-    def queueMessageToObject(self, id, msg):
+    def queue_message_to_object(self, id, msg):
         msg.receiverID = id
-        self.queueMessage(msg)
+        self.queue_message(msg)
         return True
-    def registerObject(self, obj, name=None):
+    def register_object(self, obj, name=None):
         MessageManager.registerReceiver(self, obj)
         self.objectIDMap[obj.gid] = obj
         if name:
             self.objectNameMap[name] = obj
         return obj
-    def unregisterObject(self, obj):
+    def unregister_object(self, obj):
         MessageManager.unregisterReceiver(self, obj)
         del self.objectIDMap[obj.gid]
         for i,k in self.objectNameMap.items():
@@ -48,7 +48,7 @@ class ObjectManager(MessageManager):
         MessageManager.reset(self)
         self.objectIDMap = {}
         self.objectNameMap = {}
-    def designatedToHandle(self, r, m):
+    def designated_to_handle(self, r, m):
         '''handles designated messages'''
         if m.receiverID:
             if m.receiverID == r.gid:

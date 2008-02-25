@@ -19,7 +19,7 @@ class RealPunk(Actor):
         GameObject.__init__(self)
         self.damage = 0
     def handle_TakeDamage(self, msg):
-        self.damage += msg.getProperty('damageAmount')
+        self.damage += msg.get_property('damageAmount')
         return True
 
 class TestGameObject(object):
@@ -39,49 +39,49 @@ class TestGameObject(object):
         
     def test_registerObj(self):
         obj = RealPunk()        
-        gameObjectManager.registerObject(obj)
-        assert gameObjectManager.getObject(obj.gid) == obj
+        gameObjectManager.register_object(obj)
+        assert gameObjectManager.get_object(obj.gid) == obj
     
     def test_unregisterObj(self):
         obj = RealPunk()
-        gameObjectManager.registerObject(obj)
-        assert gameObjectManager.getObject(obj.gid) == obj
-        gameObjectManager.unregisterObject(obj)
-        assert gameObjectManager.getObject(obj.gid) is None
+        gameObjectManager.register_object(obj)
+        assert gameObjectManager.get_object(obj.gid) == obj
+        gameObjectManager.unregister_object(obj)
+        assert gameObjectManager.get_object(obj.gid) is None
         
-    def test_triggerToObject(self):
+    def test_trigger_to_object(self):
         obj = RealPunk()
-        gameObjectManager.registerObject(obj)
+        gameObjectManager.register_object(obj)
         msg = TakeDamage(damageAmount = 3)
-        assert gameObjectManager.triggerToObject(obj.gid, msg)
+        assert gameObjectManager.trigger_to_object(obj.gid, msg)
         assert obj.damage == 3
         
     def test_queueToObject(self):
         obj1 = RealPunk()
         obj2 = RealPunk()
-        gameObjectManager.registerObject(obj1)
-        gameObjectManager.registerObject(obj2)
+        gameObjectManager.register_object(obj1)
+        gameObjectManager.register_object(obj2)
         msg = TakeDamage(damageAmount = 3)
-        assert gameObjectManager.queueMessageToObject(obj1.gid, msg)
+        assert gameObjectManager.queue_message_to_object(obj1.gid, msg)
         assert obj1.damage == 0
         assert obj2.damage == 0
         gameObjectManager.tick(None)
         assert obj1.damage == 3
         assert obj2.damage == 0
                                 
-    def test_queueMessage(self):
+    def test_queue_message(self):
         obj = RealPunk()
-        gameObjectManager.registerObject(obj)
+        gameObjectManager.register_object(obj)
         msg = TakeDamage(damageAmount = 2)
-        gameObjectManager.queueMessage(msg)
+        gameObjectManager.queue_message(msg)
         assert obj.damage == 0
         assert gameObjectManager.tick(None)
         assert obj.damage == 2
         
-    def test_registerObjectWithName(self):
+    def test_register_objectWithName(self):
         obj = Punk()
-        gameObjectManager.registerObject(obj, 'punk')
-        assert gameObjectManager.getObjectByName('punk') == obj
+        gameObjectManager.register_object(obj, 'punk')
+        assert gameObjectManager.get_object_by_name('punk') == obj
         
     def teardown_method(self, method):
         gameObjectManager.reset()

@@ -60,17 +60,17 @@ class Message(object):
     @property
     def messageType(self):
         return self.__class__.__name__
-    def getSender(self):
+    def get_sender(self):
         return self.sender
     def lazySetProperty(self, name, value):
-        '''this does same as setProperty, without validation'''
+        '''this does same as set_property, without validation'''
         self._properties[name] = self.pack_property(name, value)        
-    def setProperty(self, name, value):
+    def set_property(self, name, value):
         '''set required property of the message'''
         if name not in self.properties:
             raise InvalidMessageProperty('Invalid Message Property: %s' % name)
         self._properties[name] = self.pack_property(name, value)
-    def getProperty(self, name, default=None):
+    def get_property(self, name, default=None):
         if name not in self.properties:
             raise InvalidMessageProperty('Invalid Message Property: %s' % name)
         if not self._properties[name] is None:
@@ -98,7 +98,7 @@ class Message(object):
         if set(self._properties.keys()) ^ set(self.properties):
             raise InvalidMessageProperty('Message %s received invalid properties: %s' % (self.messageType, list(set(self._properties.keys()) ^ set(self.properties))))
         return True
-    def onReceipt(self, *args, **kws):
+    def on_receipt(self, *args, **kws):
         '''abstract method to be implemented with application
             defines behavior when the message is received
         '''
@@ -146,7 +146,7 @@ class MessageManager(util.Singleton):
                 r.handleMessage(msg)
             # now pass msg to message receivers that subscribed to this message type
             for r in self.messageReceiverMap.get(msg.messageType, []):
-                if not self.designatedToHandle(r, msg):
+                if not self.designated_to_handle(r, msg):
                     continue
                 # finish this message if it was handled or had designated receiver
                 if r.handleMessage(msg) or msg.receiverID:
@@ -161,7 +161,7 @@ class MessageManager(util.Singleton):
             while len(self.processingQueue):
                 self.activeQueue.appendleft(self.processingQueue.pop())
         return flushed
-    def designatedToHandle(self, r, m):
+    def designated_to_handle(self, r, m):
         '''this method is called before a receiver handles a message
             note: this is used to control the optional "designated receiver" behavior using message receiverID
                 receivers that pass this function are assumed designated receivers
@@ -186,7 +186,7 @@ class MessageManager(util.Singleton):
             if not abortAll:
                 return True
         return success
-    def queueMessage(self, msg):
+    def queue_message(self, msg):
         '''Fire off event (asynchronous) will be processed when tick() method is called
             return: true if the message was added to the processing queue
                     false otherwise.

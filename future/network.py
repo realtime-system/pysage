@@ -20,7 +20,7 @@ class Packet(Message):
         ret = struct.pack('!B', self._id)
         for i,_type in enumerate(self._types):
             name = self.properties[i]
-            value = self.getProperty(name)
+            value = self.get_property(name)
             # if this type of this value is a composite one, loop over it's subtypes and pack them individually into the stream
             if type(_type) == type(()):
                 for j,v in enumerate(getattr(self, 'pack_' + name)(value)):
@@ -62,12 +62,12 @@ class Packet(Message):
                     values.append(value)
                     pos += size
                 else:
-                    self.setProperty(name, getattr(self, 'unpack_' + name)(values))
+                    self.set_property(name, getattr(self, 'unpack_' + name)(values))
             # if not composite, just unpack them and set the property
             else:
                 value, size = self.unpackAttr(_type, data, pos)
                 pos += size
-                self.setProperty(name, value)
+                self.set_property(name, value)
         if pos != len(data):
             raise PacketError('length mismatch on decoding %s: got %i expected %i' % (self.__class__.__name__, len(data), pos))
     def unpackAttr(self, _type, data, pos):

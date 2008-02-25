@@ -27,7 +27,7 @@ class MsgProducer(MessageReceiver):
     subscriptions = ['Test']
     def handle_Test(self, msg):
         for i in range(2):
-            messageManager.queueMessage(Test(name='unknown'))
+            messageManager.queue_message(Test(name='unknown'))
         return False
     
 class MessageToPack(Message):
@@ -72,11 +72,11 @@ class TestMessage(object):
         # saying that the message wasn't consumed
         assert not messageManager.trigger(msg)
         
-    def test_queueMessage(self):
+    def test_queue_message(self):
         receiver = Receiver()
         messageManager.registerReceiver(receiver)
         msg = Test(name='Test')
-        messageManager.queueMessage(msg)
+        messageManager.queue_message(msg)
         assert len(messageManager.activeQueue) == 1
         assert len(messageManager.processingQueue) == 0
         assert messageManager.tick()
@@ -87,7 +87,7 @@ class TestMessage(object):
         receiver = Receiver()
         messageManager.registerReceiver(receiver)
         msg = Test(name='Test')
-        messageManager.queueMessage(msg)
+        messageManager.queue_message(msg)
         assert len(messageManager.activeQueue) == 1
         assert len(messageManager.processingQueue) == 0
         assert messageManager.abortMessage('Test')
@@ -98,9 +98,9 @@ class TestMessage(object):
         receiver = Receiver()
         messageManager.registerReceiver(receiver)
         msg = Test(name='Test')
-        messageManager.queueMessage(msg)
+        messageManager.queue_message(msg)
         msg2 = Message()
-        messageManager.queueMessage(msg2)
+        messageManager.queue_message(msg2)
         assert not 'Message' in messageManager.messageTypes and 'Test' in messageManager.messageTypes
         assert len(messageManager.activeQueue) == 1
         assert len(messageManager.processingQueue) == 0
@@ -116,8 +116,8 @@ class TestMessage(object):
         messageManager.registerReceiver(receiver2)
         msg1 = Test(name='Good')
         msg2 = Test(name='Day')
-        messageManager.queueMessage(msg1)
-        messageManager.queueMessage(msg2)
+        messageManager.queue_message(msg1)
+        messageManager.queue_message(msg2)
         
         assert len(messageManager.activeQueue) == 2
         messageManager.tick(.001)
@@ -130,7 +130,7 @@ class TestMessage(object):
         messageManager.registerReceiver(receiver)
         for i in range(5000):
             msg = Test(name='Bla')
-            messageManager.queueMessage(msg)
+            messageManager.queue_message(msg)
         assert len(messageManager.activeQueue) == 5000
         messageManager.tick()
         assert len(messageManager.activeQueue) == 0
@@ -139,7 +139,7 @@ class TestMessage(object):
     def test_receiverProducesMsg(self):
         receiver = MsgProducer()
         messageManager.registerReceiver(receiver)
-        messageManager.queueMessage(Test(name='bla'))
+        messageManager.queue_message(Test(name='bla'))
         assert len(messageManager.activeQueue) == 1
         messageManager.tick()
         assert len(messageManager.activeQueue) == 2
@@ -151,18 +151,18 @@ class TestMessage(object):
         messageManager.registerReceiver(receiver)
         for i in range(5000):
             msg = Test(name='bla')
-            messageManager.queueMessage(msg)
+            messageManager.queue_message(msg)
         messageManager.unregisterReceiver(receiver)
         messageManager.tick()
         assert receiver.counter == 0
         
     def test_propertyRetrieveEarly(self):
         msg = Test()
-        assert msg.getProperty('name') == None
+        assert msg.get_property('name') == None
         
     def test_propertyDefault(self):
         msg = Test()
-        assert msg.getProperty('name', 'bob') == 'bob'
+        assert msg.get_property('name', 'bob') == 'bob'
         
     def test_lateErrorChecking(self):
         msg = Test(bad='bad', verybad='bad')
@@ -170,12 +170,12 @@ class TestMessage(object):
         
     def test_unknownProperty(self):
         msg = Test(bad='bad')
-        py.test.raises(InvalidMessageProperty, lambda: messageManager.queueMessage(msg))
+        py.test.raises(InvalidMessageProperty, lambda: messageManager.queue_message(msg))
         
     def test_propertyGetSet(self):
         msg = Test()
-        msg.setProperty('name', 'robin')
-        assert msg.getProperty('name') == 'robin'
+        msg.set_property('name', 'robin')
+        assert msg.get_property('name') == 'robin'
         
     def test_packing(self):
         msg = MessageToPack(secret='secret')
@@ -184,15 +184,15 @@ class TestMessage(object):
     def test_unpacking(self):
         msg = MessageToPack(secret='secret')
         assert msg._properties['secret'] == 's'
-        assert msg.getProperty('secret') == 'secret'
+        assert msg.get_property('secret') == 'secret'
         
     def test_zeroMessageProperty(self):
         msg = Test(name=0)
-        assert msg.getProperty('name') == 0
+        assert msg.get_property('name') == 0
     
     def test_setNonePropertyDefault(self):
         msg = Test(name=None)
-        assert msg.getProperty('name', 2) == 2
+        assert msg.get_property('name', 2) == 2
         
     def teardown_method(self, method):
         messageManager.reset()
