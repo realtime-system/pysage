@@ -1,7 +1,7 @@
 # test_system.py
 # unit test that excercises the object manager system
-from pysage.messaging import *
-from pysage.system import *
+from pysage.messaging import Message
+from pysage import MessageReceiver, ObjectManager
 import py
 import time
 
@@ -13,10 +13,10 @@ class TakeDamage(Message):
 class Punk(MessageReceiver):
     pass
 
-class RealPunk(Actor):
+class RealPunk(MessageReceiver):
     subscriptions = ['TakeDamage']
     def __init__(self):
-        GameObject.__init__(self)
+        MessageReceiver.__init__(self)
         self.damage = 0
     def handle_TakeDamage(self, msg):
         self.damage += msg.get_property('damageAmount')
@@ -29,13 +29,10 @@ class TestGameObject(object):
     def test_createGameObject(self):
         obj = Punk()
         gameObjectManager.registerReceiver(obj)
-        assert obj.gid == 0
+        assert obj.gid == id(obj)
         obj = Punk()
         gameObjectManager.registerReceiver(obj)
-        assert obj.gid == 1
-        obj = Punk(1)
-        gameObjectManager.registerReceiver(obj)
-        assert obj.gid == 1
+        assert obj.gid == id(obj)
         
     def test_registerObj(self):
         obj = RealPunk()        
