@@ -31,8 +31,8 @@ class ObjectManager(MessageManager):
         msg.receiverID = id
         self.queue_message(msg)
         return True
-    def register_object(self, obj, name=None):
-        MessageManager.registerReceiver(self, obj)
+    def register_object(self, obj, name=None, group=''):
+        MessageManager.registerReceiver(self, obj, group)
         self.objectIDMap[obj.gid] = obj
         if name:
             self.objectNameMap[name] = obj
@@ -57,10 +57,10 @@ class ObjectManager(MessageManager):
                 return False
         else:
             return True
-    def tick(self, evt=None, **kws):
+    def tick(self, evt=None, group='', **kws):
         '''calls update on all objects before message manager ticks'''
         # process all messages first
-        ret = MessageManager.tick(self, **kws)
+        ret = MessageManager.tick(self, group, **kws)
         # then update all the game objects
         objs = self.objectIDMap.values()
         objs.sort(lambda x,y: y._SYNC_PRIORITY - x._SYNC_PRIORITY)

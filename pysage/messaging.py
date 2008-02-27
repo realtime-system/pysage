@@ -4,8 +4,10 @@
 #   the book: "Game Coding Complete - 2nd Edition" by Mike McShaffry
 # this module implements a message manager along with message receivers
 from collections import deque
-import time
 import util
+import threading
+import time
+import collections
 
 WildCardMessageType = '*'
 
@@ -18,6 +20,12 @@ def MessageID():
 messageID = MessageID()
 
 class InvalidMessageProperty(Exception):
+    pass
+
+class GroupAlreadyExists(Exception):
+    pass
+
+class GroupDoesNotExist(Exception):
     pass
 
 class MessageReceiver(object):
@@ -115,10 +123,37 @@ class MessageManager(util.Singleton):
         # WildCardMessageType is the wild card message type, 
         # all receivers that subscribe to this receive all messages
         # however these type of receivers cannot consume the message
-        self.messageReceiverMap = {WildCardMessageType: []}
+        self.messageReceiverMap = {WildCardMessageType: set()}
         # double buffering to avoid infinite cycles
         self.activeQueue = deque()
         self.processingQueue = deque()
+        
+        # for groups handling
+        self.groups = {}
+        self.object_group_map = collections.defaultdict(set)
+        self._should_quit = False
+    def set_groups(self, gs):
+        '''starts the groups in thread objects and let them run their tick as fast as possible'''
+        for g in gs:
+            if self.groups.has_key(g):
+                raise GroupAlreadyExists('Group name "%s" already exists.' % g)
+            
+            def _run(manager, group, interval):
+                '''interval is in milliseconds of how long to sleep before another tick'''
+                while not manager._should_quit:
+                    start = time.time()
+                    self.tick(group=g)
+                    delta = time.time() - start
+                    
+                    if delta < interval:
+                        time.sleep((interval - delta) / 1000.0)
+                return False
+                        
+            self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':30})
+            self.groups[g].start()
+            
+        # returning myself
+        return self
     def validateType(self, messageType):
         if not messageType:
             return False
@@ -126,7 +161,7 @@ class MessageManager(util.Singleton):
             return True
     def validateMessage(self, msg):
         return msg.validate()
-    def tick(self, maxTime=None):
+    def tick(self, maxTime=None, group=''):
         '''Process queued messages.
             maxTime: processing time limit so that the event processing does not take too long. 
                      not all messages are guranteed to be processed with this limiter
@@ -145,7 +180,13 @@ class MessageManager(util.Singleton):
             for r in self.messageReceiverMap[WildCardMessageType]:
                 r.handleMessage(msg)
             # now pass msg to message receivers that subscribed to this message type
-            for r in self.messageReceiverMap.get(msg.messageType, []):
+            if group:
+                if not group in self.object_group_map:
+                    raise GroupDoesNotExist('Specified group "%s" does not exist.' % group)
+                receivers = self.messageReceiverMap.get(msg.messageType, set()) & self.object_group_map[group]
+            else:
+                receivers = self.messageReceiverMap.get(msg.messageType, set())
+            for r in receivers:
                 if not self.designated_to_handle(r, msg):
                     continue
                 # finish this message if it was handled or had designated receiver
@@ -214,7 +255,7 @@ class MessageManager(util.Singleton):
         map(lambda x: x.handleMessage(msg), self.messageReceiverMap[WildCardMessageType])
         # Now loop thru the receivers that actually subscribed to this particular message type
         processed = False
-        for r in self.messageReceiverMap.get(msg.messageType, []):
+        for r in self.messageReceiverMap.get(msg.messageType, set()):
             if r.handleMessage(msg):
                 processed = True
         return processed
@@ -228,10 +269,10 @@ class MessageManager(util.Singleton):
         # if this is a new type, add to message types and register receiver
         if not msgType in self.messageTypes:
             self.messageTypes.append(msgType)
-            self.messageReceiverMap[msgType] = [receiver]
+            self.messageReceiverMap[msgType] = set([receiver])
         # known msg type, just register receiver
         else:
-            self.messageReceiverMap[msgType].append(receiver)
+            self.messageReceiverMap[msgType].add(receiver)
         return True
     def removeReceiver(self, receiver, msgType):
         '''un-register the receiver with the message type
@@ -245,16 +286,22 @@ class MessageManager(util.Singleton):
         else:
             self.messageReceiverMap[msgType].remove(receiver)
             return True
-    def registerReceiver(self, receiver):
+    def registerReceiver(self, receiver, group=''):
         for s in receiver.subscriptions:
             self.addReceiver(receiver, s)
+        if group:
+            if not self.groups.has_key(group):
+                raise GroupDoesNotExist('Group "%s" does not exist.' % group)
+            self.object_group_map[group].append(obj)
     def unregisterReceiver(self, receiver):
         for s in receiver.subscriptions:
             self.removeReceiver(receiver, s)
     def reset(self):
         '''removes all messages, receivers, used for debugging/testing'''
         self.messageTypes = []
-        self.messageReceiverMap = {WildCardMessageType: []}
+        self.messageReceiverMap = {WildCardMessageType: set()}
         self.activeQueue = deque()
         self.processingQueue = deque()
+        self.groups = {}
+        self.object_group_map = {}
           

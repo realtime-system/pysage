@@ -62,7 +62,7 @@ class TestMessage(object):
         receiver = Receiver()
         messageManager.registerReceiver(receiver)
         assert 'Test' in messageManager.messageTypes
-        assert messageManager.messageReceiverMap['Test'] == [receiver]
+        assert messageManager.messageReceiverMap['Test'] == set([receiver])
         
     def test_triggerMessage(self):
         receiver = Receiver()
