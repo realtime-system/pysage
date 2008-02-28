@@ -7,7 +7,6 @@ from collections import deque
 import util
 import threading
 import time
-import collections
 
 WildCardMessageType = '*'
 PySageInternalMainGroup = '__MAIN_GROUP__'
@@ -134,8 +133,7 @@ class MessageManager(util.Singleton):
         
         # for groups handling
         self.groups = {}
-        self.object_group_map = collections.defaultdict(set)
-        self.object_group_map[PySageInternalMainGroup] = set()
+        self.object_group_map = {PySageInternalMainGroup: set()}
         self._should_quit = False
     def set_groups(self, gs):
         '''starts the groups in thread objects and let them run their tick as fast as possible'''
@@ -299,6 +297,8 @@ class MessageManager(util.Singleton):
         if group:
             if not self.groups.has_key(group):
                 raise GroupDoesNotExist('Group "%s" does not exist.' % group)
+            if not group in self.object_group_map:
+                self.object_group_map[group] = set()
             self.object_group_map[group].add(receiver)
         else:
             self.object_group_map[PySageInternalMainGroup].add(receiver)
@@ -322,8 +322,7 @@ class MessageManager(util.Singleton):
         self.activeQueue = deque()
         self.processingQueue = deque()
         self.groups = {}
-        self.object_group_map = collections.defaultdict(set)
-        self.object_group_map[PySageInternalMainGroup] = set()
+        self.object_group_map = {PySageInternalMainGroup: set()}
     def __del__(self):
         util.Singleton.__del__(self)
         self.reset()
