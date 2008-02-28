@@ -32,7 +32,7 @@ class InvalidGroupName(Exception):
     pass
 
 class MessageReceiver(object):
-    '''generic message receiver class that game object inherits from'''
+    '''generic message receiver class that object message receivers inherit from'''
     # message types this message receiver will subscribe to
     subscriptions = []
     def __init__(self):
@@ -174,7 +174,7 @@ class MessageManager(util.Singleton):
             maxTime: processing time limit so that the event processing does not take too long. 
                      not all messages are guranteed to be processed with this limiter
             return: true if all messages ready for processing were completed
-                    false otherwise (i.e.: time out specified by the limiter)
+                    false otherwise (i.e.: processing took more than maxTime)
         '''
         # swap queues and clear the activeQueue
         self.activeQueue, self.processingQueue = self.processingQueue, self.activeQueue
@@ -216,11 +216,8 @@ class MessageManager(util.Singleton):
         '''
         return True
     def abortMessage(self, msgType, abortAll=True):
-        '''Find the next-available instance of the named event type and remove it from the processing queue.
-            This may be done up to the point that it is actively being processed ...
-            e.g.: is safe to happen during event processing itself.
-            return: true if the event was found and removed
-                    false otherwise
+        '''find the next message that is of the type msgType and remove it from the queue
+            return: true if the event was found and removed, false otherwise
         '''
         if not self.validateType(msgType):
             return False
@@ -233,7 +230,7 @@ class MessageManager(util.Singleton):
                 return True
         return success
     def queue_message(self, msg):
-        '''Fire off event (asynchronous) will be processed when tick() method is called
+        '''asychronously queues a message to be processed
             return: true if the message was added to the processing queue
                     false otherwise.
         '''
@@ -248,11 +245,8 @@ class MessageManager(util.Singleton):
             self.activeQueue.append(msg)
             return True
     def trigger(self, msg):
-        '''Fire off message (synchronous) do it NOW kind of thing, analogous to Win32 SendMessage() API.
+        '''synchronously processes a message without putting it on the queue
             return: true if the event was consumed, false if not. 
-            note: that it is acceptable for all event listeners to act on an event and not consume it
-                this return signature exists to allow complete propogation of that shred of information from the internals of 
-                this system to outside uesrs.
         '''
         if not self.validateType(msg.messageType):
             return False
