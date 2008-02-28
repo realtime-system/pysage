@@ -141,8 +141,8 @@ class MessageManager(util.Singleton):
             g = str(g)
             if self.groups.has_key(g):
                 raise GroupAlreadyExists('Group name "%s" already exists.' % g)
-            # empty string is invalid
-            if not g:
+            # validating group name
+            if not g and not g == PySageInternalMainGroup:
                 raise InvalidGroupName('Group name "%s" is invalid.' % g)
             
             def _run(manager, group, interval):
