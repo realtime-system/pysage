@@ -28,6 +28,9 @@ class GroupAlreadyExists(Exception):
 class GroupDoesNotExist(Exception):
     pass
 
+class InvalidGroupName(Exception):
+    pass
+
 class MessageReceiver(object):
     '''generic message receiver class that game object inherits from'''
     # message types this message receiver will subscribe to
@@ -135,8 +138,13 @@ class MessageManager(util.Singleton):
     def set_groups(self, gs):
         '''starts the groups in thread objects and let them run their tick as fast as possible'''
         for g in gs:
+            # make sure we have a str
+            g = str(g)
             if self.groups.has_key(g):
                 raise GroupAlreadyExists('Group name "%s" already exists.' % g)
+            # empty string is invalid
+            if not g:
+                raise InvalidGroupName('Group name "%s" is invalid.' % g)
             
             def _run(manager, group, interval):
                 '''interval is in milliseconds of how long to sleep before another tick'''

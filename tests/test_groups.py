@@ -1,5 +1,5 @@
 # test_groups.py
-from pysage.messaging import Message
+from pysage.messaging import *
 from pysage import MessageReceiver, ObjectManager
 import py
 import time
@@ -41,3 +41,11 @@ class TestGroups(object):
         assert loader.dirty
         omanager.tick()
         assert loader.dirty
+    def test_groups_validationdup(self):
+        py.test.raises(GroupAlreadyExists, lambda: omanager.set_groups(['dup','dup']))
+    def test_groups_validationexistence(self):
+        omanager.set_groups(['group1'])
+        py.test.raises(GroupDoesNotExist, lambda: omanager.register_object(Loader(), 'loader', 'group2'))
+    def test_groups_validationexistence(self):
+        py.test.raises(InvalidGroupName, lambda: omanager.set_groups(['group1', '']))
+                       
