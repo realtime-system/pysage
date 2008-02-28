@@ -142,7 +142,7 @@ class MessageManager(util.Singleton):
                 '''interval is in milliseconds of how long to sleep before another tick'''
                 while not manager._should_quit:
                     start = time.time()
-                    self.tick(group=g)
+                    manager.tick(group=group)
                     delta = time.time() - start
                     
                     if delta < interval:
@@ -292,16 +292,22 @@ class MessageManager(util.Singleton):
         if group:
             if not self.groups.has_key(group):
                 raise GroupDoesNotExist('Group "%s" does not exist.' % group)
-            self.object_group_map[group].append(obj)
+            self.object_group_map[group].add(receiver)
     def unregisterReceiver(self, receiver):
         for s in receiver.subscriptions:
             self.removeReceiver(receiver, s)
     def reset(self):
         '''removes all messages, receivers, used for debugging/testing'''
+        self._should_quit = True
+        # exist all threads
+        for g in self.groups.values():
+            g.join() 
+            
+        self._should_quit = False
         self.messageTypes = []
         self.messageReceiverMap = {WildCardMessageType: set()}
         self.activeQueue = deque()
         self.processingQueue = deque()
         self.groups = {}
-        self.object_group_map = {}
+        self.object_group_map = collections.defaultdict(set)
           
