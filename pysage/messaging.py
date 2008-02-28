@@ -128,8 +128,7 @@ class MessageManager(util.Singleton):
         # however these type of receivers cannot consume the message
         self.messageReceiverMap = {WildCardMessageType: set()}
         # double buffering to avoid infinite cycles
-        self.activeQueue = deque()
-        self.processingQueue = deque()
+        self.message_queue = deque()
         
         # for groups handling
         self.groups = {}
@@ -176,37 +175,42 @@ class MessageManager(util.Singleton):
             return: true if all messages ready for processing were completed
                     false otherwise (i.e.: processing took more than maxTime)
         '''
-        # swap queues and clear the activeQueue
-        self.activeQueue, self.processingQueue = self.processingQueue, self.activeQueue
-        self.activeQueue.clear()
+        # validate that the group exists
+        if not group == PySageInternalMainGroup and not group in self.groups:
+            raise GroupDoesNotExist('Specified group "%s" does not exist.' % group)
+        # save off the number of messages that we have at this point
+        # so that we never process more than this amount of messages to prevent infinite cycle
+        # if a message receiver sends a message to the queue while processing
+        message_count = len(self.message_queue)
+        message_processed = 0
+        
         startTime = time.time()
-        while len(self.processingQueue):
+        while len(self.message_queue) and message_processed < message_count:
+            # keep track of the count so that we do not process more than necessary
+            message_processed += 1
             # always pop the message off the queue, if there is no listeners for this message yet
             # then the message will be dropped off the queue
-            msg = self.processingQueue.popleft()
+            msg = self.message_queue.popleft()
             # for receivers that handle all messages let them handle this
-            for r in self.messageReceiverMap[WildCardMessageType]:
+            for r in self.messageReceiverMap[WildCardMessageType] & self.object_group_map.get(group, set()):
                 r.handleMessage(msg)
             # now pass msg to message receivers that subscribed to this message type
-            if not group in self.object_group_map:
-                raise GroupDoesNotExist('Specified group "%s" does not exist.' % group)
-            receivers = self.messageReceiverMap.get(msg.messageType, set()) & self.object_group_map[group]
+            receivers = self.messageReceiverMap.get(msg.messageType, set()) & self.object_group_map.get(group, set())
             for r in receivers:
-                if not self.designated_to_handle(r, msg):
-                    continue
-                # finish this message if it was handled or had designated receiver
-                if r.handleMessage(msg) or msg.receiverID:
-                    break
+                # this message will only be processed by potentially one receiver
+                if msg.receiverID:
+                    if self.designated_to_handle(r, msg):
+                        r.handleMessage(msg)
+                        # break regardless because the receiver is the only one handling this message
+                        break
+                else:
+                    # finish this message if it was handled
+                    if r.handleMessage(msg):
+                        break
             if maxTime and time.time() - startTime > maxTime:
                 break
             
-        flushed = len(self.processingQueue) == 0
-        # push any left over messages to the active queue
-        # bottom-up on the processQueue and push to the front of activeQueue
-        if not flushed:
-            while len(self.processingQueue):
-                self.activeQueue.appendleft(self.processingQueue.pop())
-        return flushed
+        return len(self.message_queue) == 0
     def designated_to_handle(self, r, m):
         '''this method is called before a receiver handles a message
             note: this is used to control the optional "designated receiver" behavior using message receiverID
@@ -222,13 +226,15 @@ class MessageManager(util.Singleton):
         if not self.validateType(msgType):
             return False
         success = False
-        for i in [x for x in self.activeQueue if x.messageType == msgType]:
+        for i in [x for x in self.message_queue if x.messageType == msgType]:
             # queue.remove(v) only available in python 2.5
-            self.activeQueue.remove(i)
+            self.message_queue.remove(i)
             success = True
             if not abortAll:
                 return True
         return success
+    def get_message_count(self):
+        return len(self.message_queue)
     def queue_message(self, msg):
         '''asychronously queues a message to be processed
             return: true if the message was added to the processing queue
@@ -242,7 +248,7 @@ class MessageManager(util.Singleton):
         if not self.messageReceiverMap.has_key(msg.messageType) and not self.messageReceiverMap[WildCardMessageType]:
             return False
         else:
-            self.activeQueue.append(msg)
+            self.message_queue.append(msg)
             return True
     def trigger(self, msg):
         '''synchronously processes a message without putting it on the queue
@@ -313,8 +319,7 @@ class MessageManager(util.Singleton):
         self._should_quit = False
         self.messageTypes = []
         self.messageReceiverMap = {WildCardMessageType: set()}
-        self.activeQueue = deque()
-        self.processingQueue = deque()
+        self.message_queue = deque()
         self.groups = {}
         self.object_group_map = {PySageInternalMainGroup: set()}
     def __del__(self):

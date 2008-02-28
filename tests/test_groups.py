@@ -113,6 +113,27 @@ class TestGroups(object):
         
         time.sleep(1)
         assert loader.handled_message == True
+    def test_multigroup(self):
+        omanager.set_groups(['workers_a', 'workers_b'])
+        loader = Loader()
+        omanager.register_object(loader, 'loader', 'workers_a')
+        
+        assert not loader.handled_message
+        for i in range(100):
+            omanager.queue_message(TestMessage())
+        
+        time.sleep(1)
+        assert omanager.get_message_count() == 0
+        assert loader.handled_message == True
+    def test_no_listeners(self):
+        omanager.set_groups(['workers_a'])
+        loader = Loader()
+        omanager.register_object(loader, 'loader')
+        
+        omanager.queue_message(TestMessage())
+        
+        time.sleep(1)
+        
         
         
         

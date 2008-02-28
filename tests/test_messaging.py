@@ -77,22 +77,18 @@ class TestMessage(object):
         messageManager.registerReceiver(receiver)
         msg = Test(name='Test')
         messageManager.queue_message(msg)
-        assert len(messageManager.activeQueue) == 1
-        assert len(messageManager.processingQueue) == 0
+        assert len(messageManager.message_queue) == 1
         assert messageManager.tick()
-        assert len(messageManager.activeQueue) == 0
-        assert len(messageManager.processingQueue) == 0
+        assert len(messageManager.message_queue) == 0
         
     def test_abortMessage(self):
         receiver = Receiver()
         messageManager.registerReceiver(receiver)
         msg = Test(name='Test')
         messageManager.queue_message(msg)
-        assert len(messageManager.activeQueue) == 1
-        assert len(messageManager.processingQueue) == 0
+        assert len(messageManager.message_queue) == 1
         assert messageManager.abortMessage('Test')
-        assert len(messageManager.activeQueue) == 0
-        assert len(messageManager.processingQueue) == 0
+        assert len(messageManager.message_queue) == 0
         
     def test_twoMessages(self):
         receiver = Receiver()
@@ -102,12 +98,10 @@ class TestMessage(object):
         msg2 = Message()
         messageManager.queue_message(msg2)
         assert not 'Message' in messageManager.messageTypes and 'Test' in messageManager.messageTypes
-        assert len(messageManager.activeQueue) == 1
-        assert len(messageManager.processingQueue) == 0
+        assert len(messageManager.message_queue) == 1
         # unhandled messages will be dropped
         assert messageManager.tick()
-        assert len(messageManager.activeQueue) == 0
-        assert len(messageManager.processingQueue) == 0
+        assert len(messageManager.message_queue) == 0
         
     def test_slowReceiver(self):
         receiver1 = Receiver()
@@ -119,11 +113,11 @@ class TestMessage(object):
         messageManager.queue_message(msg1)
         messageManager.queue_message(msg2)
         
-        assert len(messageManager.activeQueue) == 2
+        assert len(messageManager.message_queue) == 2
         messageManager.tick(.001)
-        assert len(messageManager.activeQueue) == 1
+        assert len(messageManager.message_queue) == 1
         messageManager.tick(.001)
-        assert len(messageManager.activeQueue) == 0
+        assert len(messageManager.message_queue) == 0
         
     def test_manyMessages(self):
         receiver = ManyMsgReceiver()
@@ -131,20 +125,20 @@ class TestMessage(object):
         for i in range(5000):
             msg = Test(name='Bla')
             messageManager.queue_message(msg)
-        assert len(messageManager.activeQueue) == 5000
+        assert len(messageManager.message_queue) == 5000
         messageManager.tick()
-        assert len(messageManager.activeQueue) == 0
+        assert len(messageManager.message_queue) == 0
         assert receiver.counter == 5000
         
     def test_receiverProducesMsg(self):
         receiver = MsgProducer()
         messageManager.registerReceiver(receiver)
         messageManager.queue_message(Test(name='bla'))
-        assert len(messageManager.activeQueue) == 1
+        assert len(messageManager.message_queue) == 1
         messageManager.tick()
-        assert len(messageManager.activeQueue) == 2
+        assert len(messageManager.message_queue) == 2
         messageManager.tick()
-        assert len(messageManager.activeQueue) == 4
+        assert len(messageManager.message_queue) == 4
         
     def test_unregisteredReceiver(self):
         receiver = ManyMsgReceiver()

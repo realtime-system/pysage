@@ -57,7 +57,7 @@ class ObjectManager(MessageManager):
             else:
                 return False
         else:
-            return True
+            return False
     def tick(self, evt=None, group=PySageInternalMainGroup, maxTime=None, **kws):
         '''calls update on all objects before message manager ticks'''
         # process all messages first
