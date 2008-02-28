@@ -1,5 +1,5 @@
 # system.py
-from messaging import MessageReceiver, MessageManager, WildCardMessageType
+from messaging import MessageReceiver, MessageManager, WildCardMessageType, PySageInternalMainGroup
 
 class ObjectManager(MessageManager):
     '''a generic object manager
@@ -43,6 +43,7 @@ class ObjectManager(MessageManager):
         for i,k in self.objectNameMap.items():
             if k == obj:
                 del self.objectNameMap[i]
+        return self
     def reset(self):
         '''mainly used for testing'''
         MessageManager.reset(self)
@@ -57,12 +58,18 @@ class ObjectManager(MessageManager):
                 return False
         else:
             return True
-    def tick(self, evt=None, group='', **kws):
+    def tick(self, evt=None, group=PySageInternalMainGroup, maxTime=None, **kws):
         '''calls update on all objects before message manager ticks'''
         # process all messages first
-        ret = MessageManager.tick(self, group, **kws)
+        ret = MessageManager.tick(self, maxTime=maxTime, group=group, **kws)
         # then update all the game objects
-        objs = self.objectIDMap.values()
+        if group:
+            objs = list(self.object_group_map.get(group, set()))
+        else:
+            objs = self.objectIDMap.values()
         objs.sort(lambda x,y: y._SYNC_PRIORITY - x._SYNC_PRIORITY)
         map(lambda x: x.update(evt), objs)
         return ret
+
+
+

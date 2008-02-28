@@ -10,6 +10,7 @@ import time
 import collections
 
 WildCardMessageType = '*'
+PySageInternalMainGroup = '__MAIN_GROUP__'
 
 def MessageID():
     '''generates unique message IDs per runtime'''
@@ -134,6 +135,7 @@ class MessageManager(util.Singleton):
         # for groups handling
         self.groups = {}
         self.object_group_map = collections.defaultdict(set)
+        self.object_group_map[PySageInternalMainGroup] = set()
         self._should_quit = False
     def set_groups(self, gs):
         '''starts the groups in thread objects and let them run their tick as fast as possible'''
@@ -169,7 +171,7 @@ class MessageManager(util.Singleton):
             return True
     def validateMessage(self, msg):
         return msg.validate()
-    def tick(self, maxTime=None, group=''):
+    def tick(self, maxTime=None, group=PySageInternalMainGroup):
         '''Process queued messages.
             maxTime: processing time limit so that the event processing does not take too long. 
                      not all messages are guranteed to be processed with this limiter
@@ -188,12 +190,9 @@ class MessageManager(util.Singleton):
             for r in self.messageReceiverMap[WildCardMessageType]:
                 r.handleMessage(msg)
             # now pass msg to message receivers that subscribed to this message type
-            if group:
-                if not group in self.object_group_map:
-                    raise GroupDoesNotExist('Specified group "%s" does not exist.' % group)
-                receivers = self.messageReceiverMap.get(msg.messageType, set()) & self.object_group_map[group]
-            else:
-                receivers = self.messageReceiverMap.get(msg.messageType, set())
+            if not group in self.object_group_map:
+                raise GroupDoesNotExist('Specified group "%s" does not exist.' % group)
+            receivers = self.messageReceiverMap.get(msg.messageType, set()) & self.object_group_map[group]
             for r in receivers:
                 if not self.designated_to_handle(r, msg):
                     continue
@@ -301,9 +300,15 @@ class MessageManager(util.Singleton):
             if not self.groups.has_key(group):
                 raise GroupDoesNotExist('Group "%s" does not exist.' % group)
             self.object_group_map[group].add(receiver)
+        else:
+            self.object_group_map[PySageInternalMainGroup].add(receiver)
     def unregisterReceiver(self, receiver):
         for s in receiver.subscriptions:
             self.removeReceiver(receiver, s)
+        # remove this receiver from any group that it belongs to
+        for members in self.object_group_map.values():
+            if receiver in members:
+                members.remove(receiver)
     def reset(self):
         '''removes all messages, receivers, used for debugging/testing'''
         self._should_quit = True
@@ -318,4 +323,8 @@ class MessageManager(util.Singleton):
         self.processingQueue = deque()
         self.groups = {}
         self.object_group_map = collections.defaultdict(set)
+        self.object_group_map[PySageInternalMainGroup] = set()
+    def __del__(self):
+        util.Singleton.__del__(self)
+        self.reset()
           
