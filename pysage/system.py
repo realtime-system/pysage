@@ -3,6 +3,11 @@ from __future__ import with_statement
 from messaging import MessageReceiver, MessageManager, WildCardMessageType, PySageInternalMainGroup
 import threading
 
+# use this lock because (un)registering requires manipulating a list that's stored
+# in a dictionary, concurrent manipulation by multiple threads is unsafe
+# could result in loss of registration, etc...
+# this lock could in the future be developed to cover a tight part of the section that requires
+# mutual exclusion, righ tnow it's a decorator on the entire method
 def subscription_lock(func):
     '''decorator that wraps a lock around a member method'''
     def deco(self, *args, **kws):
