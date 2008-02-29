@@ -1,5 +1,14 @@
 # system.py
+from __future__ import with_statement
 from messaging import MessageReceiver, MessageManager, WildCardMessageType, PySageInternalMainGroup
+import threading
+
+def subscription_lock(func):
+    '''decorator that wraps a lock around a member method'''
+    def deco(self, *args, **kws):
+        with self._subscription_lock:
+            return func(self, *args, **kws)
+    return deco
 
 class ObjectManager(MessageManager):
     '''a generic object manager
@@ -8,6 +17,7 @@ class ObjectManager(MessageManager):
         MessageManager.init(self)
         self.objectIDMap = {}
         self.objectNameMap = {}
+        self._subscription_lock = threading.RLock()
     def find(self, name):
         '''returns an object by its name, None if not found'''
         return self.get_object_by_name(name)
@@ -31,18 +41,27 @@ class ObjectManager(MessageManager):
         msg.receiverID = id
         self.queue_message(msg)
         return True
+    @subscription_lock
     def register_object(self, obj, name=None, group=''):
         MessageManager.registerReceiver(self, obj, group)
         self.objectIDMap[obj.gid] = obj
         if name:
             self.objectNameMap[name] = obj
         return obj
+    @subscription_lock
     def unregister_object(self, obj):
         MessageManager.unregisterReceiver(self, obj)
         del self.objectIDMap[obj.gid]
-        for i,k in self.objectNameMap.items():
-            if k == obj:
-                del self.objectNameMap[i]
+        
+        # deleting the object from the dictionary the safe way
+        n = None
+        for name,o in self.objectNameMap.items():
+            if o == obj:
+                n = name
+                break
+        if not n == None:
+            del self.objectNameMap[n]
+                
         return self
     def reset(self):
         '''mainly used for testing'''

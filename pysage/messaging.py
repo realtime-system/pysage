@@ -188,9 +188,16 @@ class MessageManager(util.Singleton):
         while len(self.message_queue) and message_processed < message_count:
             # keep track of the count so that we do not process more than necessary
             message_processed += 1
-            # always pop the message off the queue, if there is no listeners for this message yet
-            # then the message will be dropped off the queue
-            msg = self.message_queue.popleft()
+            
+            # in another multh-threaded environment, another thread that calls tick could have empties the queue here
+            try:
+                # always pop the message off the queue, if there is no listeners for this message yet
+                # then the message will be dropped off the queue
+                msg = self.message_queue.popleft()
+            # if someone else popped off my message, I just move on
+            except IndexError:
+                break
+                
             # for receivers that handle all messages let them handle this
             for r in self.messageReceiverMap[WildCardMessageType] & self.object_group_map.get(group, set()):
                 r.handleMessage(msg)
