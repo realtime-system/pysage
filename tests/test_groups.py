@@ -123,8 +123,15 @@ class TestGroups(object):
             omanager.queue_message(TestMessage())
         
         time.sleep(1)
+        assert omanager.get_message_count('workers_a') == 0
+        assert omanager.get_message_count() == 100
+        assert loader.handled_message == True
+        
+        omanager.tick()
+        assert omanager.get_message_count('workers_a') == 0
         assert omanager.get_message_count() == 0
         assert loader.handled_message == True
+        
     def test_no_listeners(self):
         omanager.set_groups(['workers_a'])
         loader = Loader()

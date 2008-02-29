@@ -3,10 +3,10 @@
 #   this module largely builds on the concepts of a trigger system introduced in
 #   the book: "Game Coding Complete - 2nd Edition" by Mike McShaffry
 # this module implements a message manager along with message receivers
-from collections import deque
 import util
 import threading
 import time
+import collections
 
 WildCardMessageType = '*'
 PySageInternalMainGroup = '__MAIN_GROUP__'
@@ -127,8 +127,16 @@ class MessageManager(util.Singleton):
         # all receivers that subscribe to this receive all messages
         # however these type of receivers cannot consume the message
         self.messageReceiverMap = {WildCardMessageType: set()}
-        # double buffering to avoid infinite cycles
-        self.message_queue = deque()
+        
+        # we will need a queue per group here
+        # because even if one group could not process the message, it does not mean
+        # that other groups could not process the message
+        # since deques are thread-safe, a group that could not process a message could potentially
+        # pop it off of the central queue and "waste it"
+        # therefore we want it enqueue a message to every group's queue for simultaneous processing
+        # note that this also means that when a message receiver decides that it "handled" the message,
+        # it can only stop propagating that message further within its own group
+        self.message_queues = {PySageInternalMainGroup: collections.deque()}
         
         # for groups handling
         self.groups = {}
@@ -156,6 +164,7 @@ class MessageManager(util.Singleton):
                         time.sleep((interval - delta) / 1000.0)
                 return False
                         
+            self.message_queues[g] = collections.deque()
             self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':30})
             self.groups[g].start()
             
@@ -168,6 +177,10 @@ class MessageManager(util.Singleton):
             return True
     def validateMessage(self, msg):
         return msg.validate()
+    def validate_group(self, group):
+        # validate that the group exists
+        if not group == PySageInternalMainGroup and not group in self.groups:
+            raise GroupDoesNotExist('Specified group "%s" does not exist.' % group)
     def tick(self, maxTime=None, group=PySageInternalMainGroup):
         '''Process queued messages.
             maxTime: processing time limit so that the event processing does not take too long. 
@@ -175,17 +188,15 @@ class MessageManager(util.Singleton):
             return: true if all messages ready for processing were completed
                     false otherwise (i.e.: processing took more than maxTime)
         '''
-        # validate that the group exists
-        if not group == PySageInternalMainGroup and not group in self.groups:
-            raise GroupDoesNotExist('Specified group "%s" does not exist.' % group)
+        self.validate_group(group)
         # save off the number of messages that we have at this point
         # so that we never process more than this amount of messages to prevent infinite cycle
         # if a message receiver sends a message to the queue while processing
-        message_count = len(self.message_queue)
+        message_count = len(self.message_queues[group])
         message_processed = 0
         
         startTime = time.time()
-        while len(self.message_queue) and message_processed < message_count:
+        while len(self.message_queues[group]) and message_processed < message_count:
             # keep track of the count so that we do not process more than necessary
             message_processed += 1
             
@@ -193,7 +204,7 @@ class MessageManager(util.Singleton):
             try:
                 # always pop the message off the queue, if there is no listeners for this message yet
                 # then the message will be dropped off the queue
-                msg = self.message_queue.popleft()
+                msg = self.message_queues[group].popleft()
             # if someone else popped off my message, I just move on
             except IndexError:
                 break
@@ -211,13 +222,16 @@ class MessageManager(util.Singleton):
                         # break regardless because the receiver is the only one handling this message
                         break
                 else:
-                    # finish this message if it was handled
+                    # if this message was handled within this group, then stop propagating the message to the
+                    # rest of the group
+                    # Note: this does not stop the message from being further propagated in other groups
+                    #       cannot prevent multiple receivers processing the same message without a lock
                     if r.handleMessage(msg):
                         break
             if maxTime and time.time() - startTime > maxTime:
                 break
             
-        return len(self.message_queue) == 0
+        return len(self.message_queues[group]) == 0
     def designated_to_handle(self, r, m):
         '''this method is called before a receiver handles a message
             note: this is used to control the optional "designated receiver" behavior using message receiverID
@@ -226,22 +240,24 @@ class MessageManager(util.Singleton):
                     False otherwise
         '''
         return True
-    def abortMessage(self, msgType, abortAll=True):
-        '''find the next message that is of the type msgType and remove it from the queue
+    def abort_message(self, msgType, abortAll=True):
+        '''find the next message that is of the type msgType and remove it from each queue
             return: true if the event was found and removed, false otherwise
         '''
         if not self.validateType(msgType):
             return False
         success = False
-        for i in [x for x in self.message_queue if x.messageType == msgType]:
-            # queue.remove(v) only available in python 2.5
-            self.message_queue.remove(i)
-            success = True
-            if not abortAll:
-                return True
+        for queue in self.message_queues.values():
+            for i in [x for x in queue if x.messageType == msgType]:
+                # queue.remove(v) only available in python 2.5
+                queue.remove(i)
+                success = True
+                if not abortAll:
+                    break
         return success
-    def get_message_count(self):
-        return len(self.message_queue)
+    def get_message_count(self, group=PySageInternalMainGroup):
+        self.validate_group(group)
+        return len(self.message_queues[group])
     def queue_message(self, msg):
         '''asychronously queues a message to be processed
             return: true if the message was added to the processing queue
@@ -255,7 +271,7 @@ class MessageManager(util.Singleton):
         if not self.messageReceiverMap.has_key(msg.messageType) and not self.messageReceiverMap[WildCardMessageType]:
             return False
         else:
-            self.message_queue.append(msg)
+            map(lambda q: q.append(msg), self.message_queues.values())
             return True
     def trigger(self, msg):
         '''synchronously processes a message without putting it on the queue
@@ -326,7 +342,7 @@ class MessageManager(util.Singleton):
         self._should_quit = False
         self.messageTypes = []
         self.messageReceiverMap = {WildCardMessageType: set()}
-        self.message_queue = deque()
+        self.message_queues = {PySageInternalMainGroup: collections.deque()}
         self.groups = {}
         self.object_group_map = {PySageInternalMainGroup: set()}
     def __del__(self):
