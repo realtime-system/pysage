@@ -5,8 +5,8 @@
 # this module implements a message manager along with message receivers
 import util
 import threading
-import time
 import collections
+import time
 
 WildCardMessageType = '*'
 PySageInternalMainGroup = '__MAIN_GROUP__'
@@ -156,9 +156,9 @@ class MessageManager(util.Singleton):
             def _run(manager, group, interval):
                 '''interval is in milliseconds of how long to sleep before another tick'''
                 while not manager._should_quit:
-                    start = time.time()
+                    start = util.get_time()
                     manager.tick(group=group)
-                    delta = time.time() - start
+                    delta = util.get_time() - start
                     
                     if delta < interval:
                         time.sleep((interval - delta) / 1000.0)
@@ -195,7 +195,7 @@ class MessageManager(util.Singleton):
         message_count = len(self.message_queues[group])
         message_processed = 0
         
-        startTime = time.time()
+        startTime = util.get_time()
         while len(self.message_queues[group]) and message_processed < message_count:
             # keep track of the count so that we do not process more than necessary
             message_processed += 1
@@ -228,7 +228,7 @@ class MessageManager(util.Singleton):
                     #       cannot prevent multiple receivers processing the same message without a lock
                     if r.handleMessage(msg):
                         break
-            if maxTime and time.time() - startTime > maxTime:
+            if maxTime and util.get_time() - startTime > maxTime:
                 break
             
         return len(self.message_queues[group]) == 0

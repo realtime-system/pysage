@@ -1,4 +1,6 @@
 # util.py
+import sys
+import time
 
 class Singleton(object):
     def __new__(cls, *args, **kwds):
@@ -18,3 +20,8 @@ class Singleton(object):
         return it      
     def init(self, *args, **kwds):
         pass
+    
+if sys.platform.startswith("win"):
+    get_time = time.clock
+else:
+    get_time = time.time
