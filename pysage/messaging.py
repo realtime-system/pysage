@@ -161,11 +161,11 @@ class MessageManager(util.Singleton):
                     delta = util.get_time() - start
                     
                     if delta < interval:
-                        time.sleep((interval - delta) / 1000.0)
+                        time.sleep(interval - delta)
                 return False
                         
             self.message_queues[g] = collections.deque()
-            self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':30})
+            self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':.03})
             self.groups[g].start()
             
         # returning myself
