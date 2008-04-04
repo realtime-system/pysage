@@ -166,6 +166,8 @@ class MessageManager(util.Singleton):
                     
                if delta < interval:
                    time.sleep(interval - delta)
+               else:
+                   time.sleep(0.001)
            return False
                         
        self.message_queues[g] = collections.deque()

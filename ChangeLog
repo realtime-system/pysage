@@ -1,8 +1,9 @@
 == 1.2.1 ==
   * Fixed threads timing issue by changing to a cross-platform timing function
   * Changed so that child threads update at 30 milliseconds interval
-  * Migrated tests to nosetests
+  * Changed unit tests to now use nosetests
   * Added add_group method so that a group can be independently added, started
+  * Improved threading support to sleep 1 millisecond if time to process took longer than interval.  To cooperate with other threads.
 
 == 1.2.0 ==
   *  Added grouping feature.  Receivers in separate groups are in a separate thread using the same event queue, but their own update loop 
