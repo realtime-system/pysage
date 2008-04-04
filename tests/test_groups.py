@@ -16,7 +16,6 @@ class Loader(MessageReceiver):
         self.dirty = 0
         self.switch = True
         self.handled_message = False
-        self.num_handled = 0
     def update(self, msg):
         if self.switch:
             self.dirty += 1
@@ -26,14 +25,23 @@ class Loader(MessageReceiver):
         return True
     
 class SlowLoader(Loader):
+    def __init__(self):
+        Loader.__init__(self)
+        self.num_handled = 0
+        self.time_updated = 0
     def update(self, msg):
         for i in range(10):
             omanager.queue_message(TestMessage())
+        self.time_updated += 1 
         return True
     def handle_TestMessage(self, msg):
         time.sleep(.2)
         self.handled_message = True
         self.num_handled += 1
+        return True
+    
+class LazyLoader(SlowLoader):
+    def handle_TestMessage(self, msg):
         return True
 
 class TestGroups(object):
@@ -154,6 +162,17 @@ class TestGroups(object):
         time.sleep(1)
         
         assert loader.num_handled == 2
+    def test_message_add_group_interval(self):
+        # the message takes .2 sec to process, we are giving it .1 sec to process
+        # so the handle can process at most 1 per tick, and we tick every 1 sec
+        # so as soon as we have something handled, there should only be one handled
+        omanager.add_group('workers', interval=.1)
+        loader = LazyLoader()
+        omanager.register_object(loader, 'loader', 'workers')
+        
+        time.sleep(.5)
+        print loader.time_updated
+        assert loader.time_updated > 4 and loader.time_updated < 6
         
     def test_multigroup(self):
         omanager.set_groups(['workers_a', 'workers_b'])
