@@ -145,33 +145,35 @@ class MessageManager(util.Singleton):
     def set_groups(self, gs):
         '''starts the groups in thread objects and let them run their tick at specified intervals'''
         for g in gs:
-            # make sure we have a str
-            g = str(g)
-            if self.groups.has_key(g):
-                raise GroupAlreadyExists('Group name "%s" already exists.' % g)
-            # validating group name
-            if not g and not g == PySageInternalMainGroup:
-                raise InvalidGroupName('Group name "%s" is invalid.' % g)
-            
-            def _run(manager, group, interval):
-                '''interval is in milliseconds of how long to sleep before another tick'''
-                while not manager._should_quit:
-                    start = util.get_time()
-                    manager.tick(group=group)
-                    delta = util.get_time() - start
-                    
-                    if delta < interval:
-                        time.sleep(interval - delta)
-                return False
-                        
-            self.message_queues[g] = collections.deque()
-            self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':.03})
-            self.groups[g].start()
+            self.add_group(g)
             
         # returning myself
         return self
-    def add_group(self, name, max_tick_time, interval):
-        pass
+    def add_group(self, name, max_tick_time=None, interval=.03):
+       # make sure we have a str
+       g = str(name)
+       if self.groups.has_key(g):
+           raise GroupAlreadyExists('Group name "%s" already exists.' % g) 
+       # validating group name 
+       if not g and not g == PySageInternalMainGroup:
+           raise InvalidGroupName('Group name "%s" is invalid.' % g) 
+            
+       def _run(manager, group, interval):
+           '''interval is in milliseconds of how long to sleep before another tick'''
+           while not manager._should_quit:
+               start = util.get_time()
+               manager.tick(maxTime=max_tick_time, group=group)
+               delta = util.get_time() - start
+                    
+               if delta < interval:
+                   time.sleep(interval - delta)
+           return False
+                        
+       self.message_queues[g] = collections.deque()
+       self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':interval})
+       self.groups[g].start()
+       
+       return self
     def validateType(self, messageType):
         if not messageType:
             return False
