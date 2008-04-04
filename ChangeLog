@@ -1,0 +1,7 @@
+== 1.2.1 ==
+  * fixed threads timing issue by changing to a cross-platform timing function
+  * changed so that child threads update at 30 milliseconds interval
+
+== 1.2.0 ==
+  *  Added grouping feature.  Receivers in separate groups are in a separate thread using the same event queue, but their own update loop 
+  
