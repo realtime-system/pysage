@@ -1,8 +1,8 @@
 # test_messaging.py
 # unit test that excercises the messaging system
 from pysage.messaging import *
-import py
 import time
+import nose
 
 messageManager = MessageManager()
 
@@ -164,7 +164,7 @@ class TestMessage(object):
         
     def test_unknownProperty(self):
         msg = Test(bad='bad')
-        py.test.raises(InvalidMessageProperty, lambda: messageManager.queue_message(msg))
+        nose.tools.assert_raises(InvalidMessageProperty, lambda: messageManager.queue_message(msg))
         
     def test_propertyGetSet(self):
         msg = Test()
@@ -188,7 +188,7 @@ class TestMessage(object):
         msg = Test(name=None)
         assert msg.get_property('name', 2) == 2
         
-    def teardown_method(self, method):
+    def tearDown(self):
         messageManager.reset()
         
         

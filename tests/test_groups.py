@@ -1,8 +1,8 @@
 # test_groups.py
 from pysage.messaging import *
 from pysage import MessageReceiver, ObjectManager
-import py
 import time
+import nose
 
 omanager = ObjectManager.get_singleton()
 
@@ -25,9 +25,9 @@ class Loader(MessageReceiver):
         return True
 
 class TestGroups(object):
-    def setup_method(self, method):
+    def setUp(self):
         omanager.reset()
-    def teardown_method(self, method):
+    def tearDown(self):
         pass
     def test_setgroups(self):
         omanager.set_groups(['resource_loading'])
@@ -58,12 +58,12 @@ class TestGroups(object):
         time.sleep(1)
         assert loader.dirty
     def test_groups_validationdup(self):
-        py.test.raises(GroupAlreadyExists, lambda: omanager.set_groups(['dup','dup']))
+        nose.tools.assert_raises(GroupAlreadyExists, lambda: omanager.set_groups(['dup','dup']))
     def test_groups_validationexistence(self):
         omanager.set_groups(['group1'])
-        py.test.raises(GroupDoesNotExist, lambda: omanager.register_object(Loader(), 'loader', 'group2'))
+        nose.tools.assert_raises(GroupDoesNotExist, lambda: omanager.register_object(Loader(), 'loader', 'group2'))
     def test_groups_validationexistence(self):
-        py.test.raises(InvalidGroupName, lambda: omanager.set_groups(['group1', '']))
+        nose.tools.assert_raises(InvalidGroupName, lambda: omanager.set_groups(['group1', '']))
     def test_unregister_frommain(self):
         omanager.set_groups(['resource_loading'])
         # put loader in default group

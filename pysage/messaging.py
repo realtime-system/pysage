@@ -143,7 +143,7 @@ class MessageManager(util.Singleton):
         self.object_group_map = {PySageInternalMainGroup: set()}
         self._should_quit = False
     def set_groups(self, gs):
-        '''starts the groups in thread objects and let them run their tick as fast as possible'''
+        '''starts the groups in thread objects and let them run their tick at specified intervals'''
         for g in gs:
             # make sure we have a str
             g = str(g)
@@ -170,6 +170,8 @@ class MessageManager(util.Singleton):
             
         # returning myself
         return self
+    def add_group(self, name, max_tick_time, interval):
+        pass
     def validateType(self, messageType):
         if not messageType:
             return False

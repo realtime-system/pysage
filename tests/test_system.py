@@ -2,8 +2,8 @@
 # unit test that excercises the object manager system
 from pysage.messaging import Message
 from pysage import MessageReceiver, ObjectManager
-import py
 import time
+import nose
 
 gameObjectManager = ObjectManager.get_singleton()
 
@@ -23,9 +23,6 @@ class RealPunk(MessageReceiver):
         return True
 
 class TestGameObject(object):
-    def setup_method(self, method):
-        pass
-        
     def test_createGameObject(self):
         obj = Punk()
         gameObjectManager.registerReceiver(obj)
@@ -80,6 +77,6 @@ class TestGameObject(object):
         gameObjectManager.register_object(obj, 'punk')
         assert gameObjectManager.get_object_by_name('punk') == obj
         
-    def teardown_method(self, method):
+    def tearDown(self):
         gameObjectManager.reset()
         
