@@ -1,4 +1,4 @@
-== 1.2.3 ==
+== 1.2.4 ==
   * Fixed threads timing issue by changing to a cross-platform timing function
   * Changed so that child threads update at 30 milliseconds interval
   * Changed unit tests to now use nosetests

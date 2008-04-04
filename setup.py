@@ -6,7 +6,7 @@ ez_setup.use_setuptools()
 
 from distutils.core import setup
 setup(name='pysage',
-      version='1.2.3',
+      version='1.2.4-a',
       packages=['pysage'],
       
     # metadata for upload to PyPI
