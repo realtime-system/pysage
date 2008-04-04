@@ -146,7 +146,6 @@ class MessageManager(util.Singleton):
         '''starts the groups in thread objects and let them run their tick at specified intervals'''
         for g in gs:
             self.add_group(g)
-            
         # returning myself
         return self
     def add_group(self, name, max_tick_time=None, interval=.03):

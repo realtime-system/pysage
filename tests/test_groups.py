@@ -16,12 +16,24 @@ class Loader(MessageReceiver):
         self.dirty = 0
         self.switch = True
         self.handled_message = False
+        self.num_handled = 0
     def update(self, msg):
         if self.switch:
             self.dirty += 1
         return True
     def handle_TestMessage(self, msg):
         self.handled_message = True
+        return True
+    
+class SlowLoader(Loader):
+    def update(self, msg):
+        for i in range(10):
+            omanager.queue_message(TestMessage())
+        return True
+    def handle_TestMessage(self, msg):
+        time.sleep(.2)
+        self.handled_message = True
+        self.num_handled += 1
         return True
 
 class TestGroups(object):
@@ -113,6 +125,36 @@ class TestGroups(object):
         
         time.sleep(1)
         assert loader.handled_message == True
+    def test_message_add_group(self):
+        omanager.add_group('workers')
+        loader = Loader()
+        omanager.register_object(loader, 'loader', 'workers')
+        
+        assert not loader.handled_message
+        omanager.queue_message(TestMessage())
+        
+        time.sleep(1)
+        assert loader.handled_message == True
+    def test_message_add_group_maxtime(self):
+        # the message takes .2 sec to process, we are giving it .1 sec to process
+        # so the handle can process at most 1 per tick, and we tick every 1 sec
+        # so as soon as we have something handled, there should only be one handled
+        omanager.add_group('workers', max_tick_time = 0.1, interval=1)
+        loader = SlowLoader()
+        omanager.register_object(loader, 'loader', 'workers')
+        
+        # wait until the loader processed at least 1 message
+        while not loader.handled_message:
+            time.sleep(0.01)
+            
+        time.sleep(.5)
+        
+        assert loader.num_handled == 1
+        
+        time.sleep(1)
+        
+        assert loader.num_handled == 2
+        
     def test_multigroup(self):
         omanager.set_groups(['workers_a', 'workers_b'])
         loader = Loader()
