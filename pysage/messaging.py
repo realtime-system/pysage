@@ -148,7 +148,7 @@ class MessageManager(util.Singleton):
             self.add_group(g)
         # returning myself
         return self
-    def add_group(self, name, max_tick_time=None, interval=.03):
+    def add_group(self, name, max_tick_time=None, interval=.03, minimum_sleep=.001):
        # make sure we have a str
        g = str(name)
        if self.groups.has_key(g):
@@ -157,21 +157,23 @@ class MessageManager(util.Singleton):
        if not g and not g == PySageInternalMainGroup:
            raise InvalidGroupName('Group name "%s" is invalid.' % g) 
             
-       def _run(manager, group, interval):
+       def _run(manager, group, interval, minimum_sleep):
            '''interval is in milliseconds of how long to sleep before another tick'''
            while not manager._should_quit:
                start = util.get_time()
                manager.tick(maxTime=max_tick_time, group=group)
-               delta = util.get_time() - start
                     
-               if delta < interval:
-                   time.sleep(interval - delta)
-               else:
-                   time.sleep(0.001)
+               # we want to sleep the different between the time it took to process and the interval desired
+               _time_to_sleep = interval - (util.get_time() - start)
+               # incase we have less than minimum required to sleep, we will sleep the minimum
+               if _time_to_sleep < minimum_sleep:
+                   _time_to_sleep = minimum_sleep
+                   
+               time.sleep(_time_to_sleep)
            return False
                         
        self.message_queues[g] = collections.deque()
-       self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':interval})
+       self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':interval, 'minimum_sleep':minimum_sleep})
        self.groups[g].start()
        
        return self

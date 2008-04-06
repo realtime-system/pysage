@@ -1,3 +1,5 @@
+== 1.2.5 ==
+  * Added minimum_sleep to the threaded tick runner.  This helps the OS to give control to better manage control between threads.
 == 1.2.4 ==
   * Fixed threads timing issue by changing to a cross-platform timing function
   * Changed so that child threads update at 30 milliseconds interval

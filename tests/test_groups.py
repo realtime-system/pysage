@@ -172,8 +172,18 @@ class TestGroups(object):
         
         time.sleep(.5)
         print loader.time_updated
-        assert loader.time_updated > 4 and loader.time_updated < 6
+        assert loader.time_updated >= 4 and loader.time_updated <= 5
+    def test_message_add_group_minimum_sleep(self):
+        # the message takes .2 sec to process, we are giving it .1 sec to process
+        # so the handle can process at most 1 per tick, and we tick every 1 sec
+        # so as soon as we have something handled, there should only be one handled
+        omanager.add_group('workers', interval=0, minimum_sleep=.1)
+        loader = LazyLoader()
+        omanager.register_object(loader, 'loader', 'workers')
         
+        time.sleep(.5)
+        print loader.time_updated
+        assert loader.time_updated >= 4 and loader.time_updated <= 5
     def test_multigroup(self):
         omanager.set_groups(['workers_a', 'workers_b'])
         loader = Loader()
