@@ -6,7 +6,7 @@
 
 from distutils.core import setup
 setup(name='pysage',
-      version='1.2.8',
+      version='1.2.9',
       packages=['pysage'],
       
     # metadata for upload to PyPI

@@ -1,6 +1,6 @@
 # test_groups.py
-from pysage.messaging import *
-from pysage import MessageReceiver, ObjectManager
+from pysage.messaging import GroupAlreadyExists, InvalidGroupName
+from pysage import MessageReceiver, ObjectManager, Message
 import time
 import nose
 

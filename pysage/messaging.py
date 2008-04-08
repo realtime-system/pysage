@@ -1,6 +1,6 @@
 # Messaging.py
 # Credits: 
-#   this module largely builds on the concepts of a trigger system introduced in
+#   this module builds on the concepts of a trigger system introduced in
 #   the book: "Game Coding Complete - 2nd Edition" by Mike McShaffry
 # this module implements a message manager along with message receivers
 import util
@@ -10,14 +10,6 @@ import time
 
 WildCardMessageType = '*'
 PySageInternalMainGroup = '__MAIN_GROUP__'
-
-def MessageID():
-    '''generates unique message IDs per runtime'''
-    i = 0
-    while True:
-        yield i
-        i += 1
-messageID = MessageID()
 
 class InvalidMessageProperty(Exception):
     pass
@@ -64,8 +56,10 @@ class Message(object):
         for name, value in kws.items():
             self.lazySetProperty(name, value)
         self.sender = sender
-        self.gid = messageID.next()
+        self.gid = self.assign_id()
         self.receiverID = receiverID
+    def assign_id(self):
+        return str(id(self))
     def __repr__(self):
         return 'Message %s %s' % (self.messageType, self.gid)
     @property

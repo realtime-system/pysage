@@ -1,7 +1,6 @@
 # test_system.py
 # unit test that excercises the object manager system
-from pysage.messaging import Message
-from pysage import MessageReceiver, ObjectManager
+from pysage import MessageReceiver, ObjectManager, Message
 import time
 import nose
 
@@ -23,6 +22,8 @@ class RealPunk(MessageReceiver):
         return True
 
 class TestGameObject(object):
+    def test_messageid(self):
+        assert ':' in TakeDamage(damageAmount = 1).gid
     def test_createGameObject(self):
         obj = Punk()
         gameObjectManager.registerReceiver(obj)

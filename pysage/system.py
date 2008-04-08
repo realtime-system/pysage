@@ -1,7 +1,7 @@
 # system.py
 from __future__ import with_statement
-from messaging import MessageReceiver, MessageManager, WildCardMessageType, PySageInternalMainGroup
 import threading
+import messaging
 
 # use this lock because (un)registering requires manipulating a list that's stored
 # in a dictionary, concurrent manipulation by multiple threads is unsafe
@@ -15,14 +15,22 @@ def subscription_lock(func):
             return func(self, *args, **kws)
     return deco
 
-class ObjectManager(MessageManager):
+MessageReceiver = messaging.MessageReceiver
+
+class Message(messaging.Message):
+    def assign_id(self):
+        '''return a globally unique id that is good cross processes'''
+        return ObjectManager.get_singleton().gid + ':' +  messaging.Message.assign_id(self)
+
+class ObjectManager(messaging.MessageManager):
     '''a generic object manager
     '''
     def init(self):
-        MessageManager.init(self)
+        messaging.MessageManager.init(self)
         self.objectIDMap = {}
         self.objectNameMap = {}
         self._subscription_lock = threading.RLock()
+        self.gid = '0'
     def find(self, name):
         '''returns an object by its name, None if not found'''
         return self.get_object_by_name(name)
@@ -39,7 +47,7 @@ class ObjectManager(MessageManager):
                     False: otherwise
         '''
         obj = self.objectIDMap[id]
-        for recr in self.messageReceiverMap[WildCardMessageType]:
+        for recr in self.messageReceiverMap[messaging.WildCardMessageType]:
             recr.handleMessage(msg)
         return obj.handleMessage(msg)
     def queue_message_to_object(self, id, msg):
@@ -48,14 +56,14 @@ class ObjectManager(MessageManager):
         return True
     @subscription_lock
     def register_object(self, obj, name=None, group=''):
-        MessageManager.registerReceiver(self, obj, group)
+        messaging.MessageManager.registerReceiver(self, obj, group)
         self.objectIDMap[obj.gid] = obj
         if name:
             self.objectNameMap[name] = obj
         return obj
     @subscription_lock
     def unregister_object(self, obj):
-        MessageManager.unregisterReceiver(self, obj)
+        messaging.MessageManager.unregisterReceiver(self, obj)
         del self.objectIDMap[obj.gid]
         
         # deleting the object from the dictionary the safe way
@@ -70,7 +78,7 @@ class ObjectManager(MessageManager):
         return self
     def reset(self):
         '''mainly used for testing'''
-        MessageManager.reset(self)
+        messaging.MessageManager.reset(self)
         self.objectIDMap = {}
         self.objectNameMap = {}
     def designated_to_handle(self, r, m):
@@ -82,10 +90,10 @@ class ObjectManager(MessageManager):
                 return False
         else:
             return False
-    def tick(self, evt=None, group=PySageInternalMainGroup, maxTime=None, **kws):
+    def tick(self, evt=None, group=messaging.PySageInternalMainGroup, maxTime=None, **kws):
         '''calls update on all objects before message manager ticks'''
         # process all messages first
-        ret = MessageManager.tick(self, maxTime=maxTime, group=group, **kws)
+        ret = messaging.MessageManager.tick(self, maxTime=maxTime, group=group, **kws)
         # then update all the game objects
         if group:
             objs = list(self.object_group_map.get(group, set()))
