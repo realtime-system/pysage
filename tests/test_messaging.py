@@ -1,6 +1,7 @@
 # test_messaging.py
 # unit test that excercises the messaging system
 from pysage.messaging import *
+from pysage.messaging import MessageReceiver, Message, MessageManager
 import time
 import nose
 
