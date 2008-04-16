@@ -1,15 +1,19 @@
-== 1.2.5 ==
+==Change Log==
+=== 1.2.5 ===
   * Added minimum_sleep to the threaded tick runner.  This helps the OS to give control to better manage control between threads.
   * Removed ez_setup from the directory structure
   * Fixed the messageID generator already executing bug.  Python generators are not thread safe.
   * Added __all__ to messaging module to prevent accidental importing Message class to override the system one
-== 1.2.4 ==
+===1.2.4===
   * Fixed threads timing issue by changing to a cross-platform timing function
   * Changed so that child threads update at 30 milliseconds interval
   * Changed unit tests to now use nosetests
   * Added add_group method so that a group can be independently added, started
   * Improved threading support to sleep 1 millisecond if time to process took longer than interval.  To cooperate with other threads.
-
-== 1.2.0 ==
-  *  Added grouping feature.  Receivers in separate groups are in a separate thread using the same event queue, but their own update loop 
   
+===1.2.1===
+  * Fixed so that child threads update in 30 milliseconds interval 
+  * Changed code to use higher resolution timer on windows 
+
+===1.2.0===
+  *  Added grouping feature.  Receivers in separate groups are in a separate thread using the same event queue, but their own update loop 
