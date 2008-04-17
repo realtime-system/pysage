@@ -1,4 +1,6 @@
 ==Change Log==
+=== 1.2.6 ===
+  * Removed __all__ from messaging module so pydoc better parses the source
 === 1.2.5 ===
   * Added minimum_sleep to the threaded tick runner.  This helps the OS to give control to better manage control between threads.
   * Removed ez_setup from the directory structure

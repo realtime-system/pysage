@@ -8,7 +8,7 @@ import threading
 import collections
 import time
 
-__all__ = ['InvalidMessageProperty', 'GroupAlreadyExists', 'GroupDoesNotExist', 'InvalidGroupName']
+# __all__ = ['InvalidMessageProperty', 'GroupAlreadyExists', 'GroupDoesNotExist', 'InvalidGroupName']
 
 WildCardMessageType = '*'
 PySageInternalMainGroup = '__MAIN_GROUP__'
