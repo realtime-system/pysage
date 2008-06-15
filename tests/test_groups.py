@@ -2,7 +2,7 @@
 from pysage.messaging import GroupAlreadyExists, InvalidGroupName
 from pysage import MessageReceiver, ObjectManager, Message
 import time
-import nose
+import unittest
 
 omanager = ObjectManager.get_singleton()
 
@@ -44,7 +44,7 @@ class LazyLoader(SlowLoader):
     def handle_TestMessage(self, msg):
         return True
 
-class TestGroups(object):
+class TestGroups(unittest.TestCase):
     def setUp(self):
         omanager.reset()
     def tearDown(self):
@@ -78,12 +78,12 @@ class TestGroups(object):
         time.sleep(1)
         assert loader.dirty
     def test_groups_validationdup(self):
-        nose.tools.assert_raises(GroupAlreadyExists, lambda: omanager.set_groups(['dup','dup']))
+        self.assertRaises(GroupAlreadyExists, lambda: omanager.set_groups(['dup','dup']))
     def test_groups_validationexistence(self):
         omanager.set_groups(['group1'])
-        nose.tools.assert_raises(GroupDoesNotExist, lambda: omanager.register_object(Loader(), 'loader', 'group2'))
+        self.assertRaises(GroupDoesNotExist, lambda: omanager.register_object(Loader(), 'loader', 'group2'))
     def test_groups_validationexistence(self):
-        nose.tools.assert_raises(InvalidGroupName, lambda: omanager.set_groups(['group1', '']))
+        self.assertRaises(InvalidGroupName, lambda: omanager.set_groups(['group1', '']))
     def test_unregister_frommain(self):
         omanager.set_groups(['resource_loading'])
         # put loader in default group

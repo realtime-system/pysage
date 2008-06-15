@@ -3,7 +3,7 @@
 from pysage.messaging import *
 from pysage.messaging import MessageReceiver, Message, MessageManager
 import time
-import nose
+import unittest
 
 messageManager = MessageManager()
 
@@ -46,10 +46,7 @@ class ManyMsgReceiver(MessageReceiver):
         self.counter += 1
         return False
 
-class TestMessage(object):
-    def setup_method(self, method):
-        pass
-    
+class TestMessage(unittest.TestCase):
     def test_messageRepr(self):
         msg = Test()
         msg.gid = 1
@@ -165,7 +162,7 @@ class TestMessage(object):
         
     def test_unknownProperty(self):
         msg = Test(bad='bad')
-        nose.tools.assert_raises(InvalidMessageProperty, lambda: messageManager.queue_message(msg))
+        self.assertRaises(InvalidMessageProperty, lambda: messageManager.queue_message(msg))
         
     def test_propertyGetSet(self):
         msg = Test()

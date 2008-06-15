@@ -2,7 +2,7 @@
 # unit test that excercises the object manager system
 from pysage import MessageReceiver, ObjectManager, Message
 import time
-import nose
+import unittest
 
 gameObjectManager = ObjectManager.get_singleton()
 
@@ -21,7 +21,7 @@ class RealPunk(MessageReceiver):
         self.damage += msg.get_property('damageAmount')
         return True
 
-class TestGameObject(object):
+class TestGameObject(unittest.TestCase):
     def test_messageid(self):
         assert ':' in TakeDamage(damageAmount = 1).gid
     def test_createGameObject(self):
