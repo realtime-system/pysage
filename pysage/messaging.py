@@ -53,11 +53,11 @@ class Message(object):
     '''generic message class'''
     properties= []
     _LOG_LEVEL = 0
-    def __init__(self, sender=None, receiverID=None, **kws):
+    def __init__(self, sender_id=None, receiverID=None, **kws):
         self._properties = dict( (x, None) for x in self.properties )
         for name, value in kws.items():
             self.lazySetProperty(name, value)
-        self.sender = sender
+        self.sender_id = sender_id
         self.gid = self.assign_id()
         self.receiverID = receiverID
     def assign_id(self):
@@ -145,34 +145,34 @@ class MessageManager(util.Singleton):
         # returning myself
         return self
     def add_group(self, name, max_tick_time=None, interval=.03, minimum_sleep=.001):
-       # make sure we have a str
-       g = str(name)
-       if self.groups.has_key(g):
-           raise GroupAlreadyExists('Group name "%s" already exists.' % g) 
-       # validating group name 
-       if not g and not g == PySageInternalMainGroup:
-           raise InvalidGroupName('Group name "%s" is invalid.' % g) 
+        # make sure we have a str
+        g = str(name)
+        if self.groups.has_key(g):
+            raise GroupAlreadyExists('Group name "%s" already exists.' % g) 
+        # validating group name 
+        if not g and not g == PySageInternalMainGroup:
+            raise InvalidGroupName('Group name "%s" is invalid.' % g) 
             
-       def _run(manager, group, interval, minimum_sleep):
-           '''interval is in milliseconds of how long to sleep before another tick'''
-           while not manager._should_quit:
-               start = util.get_time()
-               manager.tick(maxTime=max_tick_time, group=group)
-                    
-               # we want to sleep the different between the time it took to process and the interval desired
-               _time_to_sleep = interval - (util.get_time() - start)
-               # incase we have less than minimum required to sleep, we will sleep the minimum
-               if _time_to_sleep < minimum_sleep:
-                   _time_to_sleep = minimum_sleep
+        def _run(manager, group, interval, minimum_sleep):
+            '''interval is in milliseconds of how long to sleep before another tick'''
+            while not manager._should_quit:
+                start = util.get_time()
+                manager.tick(maxTime=max_tick_time, group=group)
+                     
+                # we want to sleep the different between the time it took to process and the interval desired
+                _time_to_sleep = interval - (util.get_time() - start)
+                # incase we have less than minimum required to sleep, we will sleep the minimum
+                if _time_to_sleep < minimum_sleep:
+                    _time_to_sleep = minimum_sleep
                    
-               time.sleep(_time_to_sleep)
-           return False
+                time.sleep(_time_to_sleep)
+            return False
                         
-       self.message_queues[g] = collections.deque()
-       self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':interval, 'minimum_sleep':minimum_sleep})
-       self.groups[g].start()
+        self.message_queues[g] = collections.deque()
+        self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':interval, 'minimum_sleep':minimum_sleep})
+        self.groups[g].start()
        
-       return self
+        return self
     def validateType(self, messageType):
         if not messageType:
             return False
@@ -185,11 +185,16 @@ class MessageManager(util.Singleton):
         if not group == PySageInternalMainGroup and not group in self.groups:
             raise GroupDoesNotExist('Specified group "%s" does not exist.' % group)
     def tick(self, maxTime=None, group=PySageInternalMainGroup):
-        '''Process queued messages.
-            maxTime: processing time limit so that the event processing does not take too long. 
-                     not all messages are guranteed to be processed with this limiter
-            return: true if all messages ready for processing were completed
-                    false otherwise (i.e.: processing took more than maxTime)
+        '''
+        Process queued messages.
+        
+        :Parameters:
+            - `maxTime`: processing time limit so that the event processing does not take too long. 
+              not all messages are guranteed to be processed with this limiter
+
+        :Return:
+            - true: if all messages ready for processing were completed
+            - false: otherwise (i.e.: processing took more than maxTime)
         '''
         self.validate_group(group)
         # save off the number of messages that we have at this point
@@ -237,10 +242,13 @@ class MessageManager(util.Singleton):
         return len(self.message_queues[group]) == 0
     def designated_to_handle(self, r, m):
         '''this method is called before a receiver handles a message
-            note: this is used to control the optional "designated receiver" behavior using message receiverID
-                receivers that pass this function are assumed designated receivers
-            return: True if the receiver is designated to handle the message
-                    False otherwise
+        
+           note: this is used to control the optional "designated receiver" behavior using message receiverID
+           receivers that pass this function are assumed designated receivers
+           
+           :Returns:
+               - true: if the receiver is designated to handle the message
+               - false: otherwise
         '''
         return True
     def abort_message(self, msgType, abortAll=True):
@@ -263,8 +271,10 @@ class MessageManager(util.Singleton):
         return len(self.message_queues[group])
     def queue_message(self, msg):
         '''asychronously queues a message to be processed
-            return: true if the message was added to the processing queue
-                    false otherwise.
+        
+           :Return: 
+               - true: if the message was added to the processing queue
+               - false: otherwise.
         '''
         if not self.validateMessage(msg):
             return False
@@ -291,9 +301,12 @@ class MessageManager(util.Singleton):
                 processed = True
         return processed
     def addReceiver(self, receiver, msgType):
-        '''registers the receiver with the message type
-            return: true if success
-                    false otherwise
+        '''
+        registers the receiver with the message type
+        
+        :Return: 
+            - true: if success
+            - false: otherwise
         '''
         if not self.validateType(msgType):
             return False
@@ -307,8 +320,10 @@ class MessageManager(util.Singleton):
         return True
     def removeReceiver(self, receiver, msgType):
         '''un-register the receiver with the message type
-            return: true if successfully unregistered
-                    false if the pair is not found in registry
+        
+           :Return:
+               - true: if successfully unregistered
+               - false: if the pair is not found in registry
         '''
         if not self.validateType(msgType):
             return False

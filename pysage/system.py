@@ -42,9 +42,13 @@ class ObjectManager(messaging.MessageManager):
     def objects(self):
         return self.objectIDMap.values()
     def trigger_to_object(self, id, msg):
-        '''sends a particular game object a message if that game object implements this message type
-            returns True: if event was consumed
-                    False: otherwise
+        '''
+        sends a particular game object a message if that game object implements this message type
+        
+        return:
+        
+        - `True`: if event was consumed
+        - `False`: otherwise
         '''
         obj = self.objectIDMap[id]
         for recr in self.messageReceiverMap[messaging.WildCardMessageType]:
