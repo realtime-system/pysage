@@ -53,11 +53,10 @@ class Message(object):
     '''generic message class'''
     properties= []
     _LOG_LEVEL = 0
-    def __init__(self, sender_id=None, receiverID=None, **kws):
+    def __init__(self, receiverID=None, **kws):
         self._properties = dict( (x, None) for x in self.properties )
         for name, value in kws.items():
             self.lazySetProperty(name, value)
-        self.sender_id = sender_id
         self.gid = self.assign_id()
         self.receiverID = receiverID
     def assign_id(self):
@@ -67,8 +66,6 @@ class Message(object):
     @property
     def messageType(self):
         return self.__class__.__name__
-    def get_sender(self):
-        return self.sender
     def lazySetProperty(self, name, value):
         '''this does same as set_property, without validation'''
         self._properties[name] = self.pack_property(name, value)        
