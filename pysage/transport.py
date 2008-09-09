@@ -1,4 +1,5 @@
 # transport.py
+import pyraknet
 
 class Transport(object):
     '''an interface that all transports must implement'''
@@ -22,3 +23,5 @@ class Transport(object):
         pass
         
 
+class RakNetTransport(Transport):
+    pass

@@ -1,6 +1,7 @@
 # network.py
 import struct
 import system
+import transport
 
 def generate_id():
     '''a generator that yeilds ids'''
@@ -19,8 +20,10 @@ class NetworkManager(system.ObjectManager):
     def init(self):
         system.ObjectManager.init(self)
         self.gid = unique_ids.next()
+        self.transport = transport.RakNetTransport()
 
-class NetworkReceiver(system.MessageReceiver):
+class PacketReceiver(system.MessageReceiver):
+    @property
     def gid(self):
         '''return a globally unique id that is good cross processes'''
         return (NetworkManager.get_singleton().gid, id(self))
