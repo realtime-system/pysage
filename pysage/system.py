@@ -17,10 +17,7 @@ def subscription_lock(func):
 
 MessageReceiver = messaging.MessageReceiver
 
-class Message(messaging.Message):
-    def assign_id(self):
-        '''return a globally unique id that is good cross processes'''
-        return ObjectManager.get_singleton().gid + ':' +  messaging.Message.assign_id(self)
+Message = messaging.Message
 
 class ObjectManager(messaging.MessageManager):
     '''a generic object manager
@@ -30,7 +27,6 @@ class ObjectManager(messaging.MessageManager):
         self.objectIDMap = {}
         self.objectNameMap = {}
         self._subscription_lock = threading.RLock()
-        self.gid = '0'
     def find(self, name):
         '''returns an object by its name, None if not found'''
         return self.get_object_by_name(name)

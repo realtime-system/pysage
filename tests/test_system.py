@@ -22,8 +22,6 @@ class RealPunk(MessageReceiver):
         return True
 
 class TestGameObject(unittest.TestCase):
-    def test_messageid(self):
-        assert ':' in TakeDamage(damageAmount = 1).gid
     def test_createGameObject(self):
         obj = Punk()
         gameObjectManager.registerReceiver(obj)

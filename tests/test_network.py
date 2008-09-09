@@ -1,9 +1,8 @@
 # test_network.py
-from pysage.network import Packet
-from pysage.system import ObjectManager
+from pysage.network import Packet, NetworkManager
 import unittest
 
-omanager = ObjectManager.get_singleton()
+nmanager = NetworkManager.get_singleton()
 
 class TestMessage(Packet):
     properties = ['amount']
@@ -16,6 +15,8 @@ class TestNetwork(unittest.TestCase):
     def test_packing(self):
         p = TestMessage(amount=1)
         assert p.to_string() == 'd\x00\x00\x00\x01'
+    def test_manager_gid(self):
+        assert nmanager.gid == 0
 
 
 

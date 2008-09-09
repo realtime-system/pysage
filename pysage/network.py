@@ -2,8 +2,28 @@
 import struct
 import system
 
+def generate_id():
+    '''a generator that yeilds ids'''
+    counter = 0
+    while True:
+        yield counter
+        counter += 1
+        
+unique_ids = generate_id()
+
 class PacketError(Exception):
     pass
+
+class NetworkManager(system.ObjectManager):
+    '''extends objectmanager to provide network functionality'''
+    def init(self):
+        system.ObjectManager.init(self)
+        self.gid = unique_ids.next()
+
+class NetworkReceiver(system.MessageReceiver):
+    def gid(self):
+        '''return a globally unique id that is good cross processes'''
+        return (NetworkManager.get_singleton().gid, id(self))
 
 class Packet(system.Message):
     '''a packet is a network message'''
