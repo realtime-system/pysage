@@ -3,30 +3,17 @@ import struct
 import system
 import transport
 
-def generate_id():
+def generate_network_id():
     '''a generator that yeilds ids'''
     counter = 0
     while True:
         yield counter
         counter += 1
         
-unique_ids = generate_id()
+network_id = generate_network_id()
 
 class PacketError(Exception):
     pass
-
-class NetworkManager(system.ObjectManager):
-    '''extends objectmanager to provide network functionality'''
-    def init(self):
-        system.ObjectManager.init(self)
-        self.gid = unique_ids.next()
-        self.transport = transport.RakNetTransport()
-
-class PacketReceiver(system.MessageReceiver):
-    @property
-    def gid(self):
-        '''return a globally unique id that is good cross processes'''
-        return (NetworkManager.get_singleton().gid, id(self))
 
 class Packet(system.Message):
     '''a packet is a network message'''
@@ -125,6 +112,26 @@ class Packet(system.Message):
             except struct.error, err:
                 raise PacketError('Error unpacking "%s": %s' % (self.__class__.__name__, err))
         return value, size
-    
-    
+
+class NetworkManager(system.ObjectManager):
+    '''extends objectmanager to provide network functionality'''
+    def init(self):
+        system.ObjectManager.init(self)
+        self.gid = network_id.next()
+        self.transport = transport.RakNetTransport()
+    def start_server(self, port):
+        '''TODO: finish this before implementing the transport'''
+        def connection_handler(client_address):
+            '''keeps books about this client and tell it a new id'''
+            pass
+        self.transport.listen(port, connection_handler)
+        return self
+
+class PacketReceiver(system.MessageReceiver):
+    @property
+    def gid(self):
+        '''return a globally unique id that is good cross processes'''
+        return (NetworkManager.get_singleton().gid, id(self))
+
+
     
