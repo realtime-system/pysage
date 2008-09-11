@@ -2,6 +2,13 @@
 import struct
 import system
 import transport
+import logging
+
+class PacketError(Exception):
+    pass
+
+class PacketTypeError(Exception):
+    pass
 
 def generate_network_id():
     '''a generator that yeilds ids'''
@@ -12,11 +19,69 @@ def generate_network_id():
         
 network_id = generate_network_id()
 
-class PacketError(Exception):
-    pass
+class NetworkManager(system.ObjectManager):
+    '''extends objectmanager to provide network functionality'''
+    def init(self):
+        system.ObjectManager.init(self)
+        self.gid = network_id.next()
+        self.transport = transport.RakNetTransport()
+        self.clients = {}
+        self.packet_types = {}
+    def start_server(self, port):
+        def connection_handler(client_address):
+            '''keeps books about this client and tell it a new id'''
+            # bookkeeping
+            clientid = network_id.next()
+            self.clients[clientid] = client_address
+            # tell client its new id
+            self.transport.send('%c%i' % (100, clientid), self.clients[clientid])
+        self.transport.listen(port, connection_handler)
+        return self
+    def send_message(self, msg, clientid):
+        self.transport.send(msg.to_string(), id=self.clients[clientid])
+    def broadcast_message(self, msg):
+        self.transport.send(msg.to_string(), broadcast=True)
+        return self
+    def tick(self, *args, **kws):
+        '''first poll network for packets, then process messages, then object updates'''
+        self.poll(self.packet_handler)
+        return system.ObjectManager.tick(self, *args, **kws)
+    def packet_handler(self, packet):
+        type = ord(packet.data[0])
+        logging.debug('Received packet of type "%s"' % type)
+        if type < 100:
+            logging.warning('Found internal unhandled packet of type "%s"' % self.net.get_packet_type_name(type))
+            return
+        for p in self.registered_packets:
+            if p._id != type:
+                continue
+            a = p()
+            a.decode(packet.data)
+            a.player = packet.player
+            self.queueMessage(a)
+            return
+    def register_packet_type(self, packet_class):
+        # skip the base packet class
+        if packet_class.__name__ == 'Packet':
+            return
+        if packet_class.packet_type <= 100:
+            raise PacketTypeError('Packet_type must be greater than 100.  Had "%s"' % packet_class.packet_type)
+        self.packet_types[packet_class.packet_type] = packet_class
+        
+class PacketReceiver(system.MessageReceiver):
+    @property
+    def gid(self):
+        '''return a globally unique id that is good cross processes'''
+        return (NetworkManager.get_singleton().gid, id(self))
+
+class AutoRegister(type):
+    def __init__(cls, name, bases, dct):
+        super(AutoRegister, cls).__init__(name, bases, dct)
+        NetworkManager.get_singleton().register_packet_type(cls)
 
 class Packet(system.Message):
     '''a packet is a network message'''
+    __metaclass__ = AutoRegister
     types = []
     packet_type = None
     def to_string(self):
@@ -113,25 +178,5 @@ class Packet(system.Message):
                 raise PacketError('Error unpacking "%s": %s' % (self.__class__.__name__, err))
         return value, size
 
-class NetworkManager(system.ObjectManager):
-    '''extends objectmanager to provide network functionality'''
-    def init(self):
-        system.ObjectManager.init(self)
-        self.gid = network_id.next()
-        self.transport = transport.RakNetTransport()
-    def start_server(self, port):
-        '''TODO: finish this before implementing the transport'''
-        def connection_handler(client_address):
-            '''keeps books about this client and tell it a new id'''
-            pass
-        self.transport.listen(port, connection_handler)
-        return self
-
-class PacketReceiver(system.MessageReceiver):
-    @property
-    def gid(self):
-        '''return a globally unique id that is good cross processes'''
-        return (NetworkManager.get_singleton().gid, id(self))
 
 
-    
