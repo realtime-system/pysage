@@ -10,56 +10,42 @@ class PacketError(Exception):
 class PacketTypeError(Exception):
     pass
 
-def generate_network_id():
-    '''a generator that yeilds ids'''
-    counter = 0
-    while True:
-        yield counter
-        counter += 1
-        
-network_id = generate_network_id()
-
 class NetworkManager(system.ObjectManager):
     '''extends objectmanager to provide network functionality'''
     def init(self):
         system.ObjectManager.init(self)
-        self.gid = network_id.next()
+        # self.gid = network_id.next()
+        self.gid = 0
         self.transport = transport.RakNetTransport()
         self.clients = {}
         self.packet_types = {}
     def start_server(self, port):
         def connection_handler(client_address):
-            '''keeps books about this client and tell it a new id'''
-            # bookkeeping
-            clientid = network_id.next()
-            self.clients[clientid] = client_address
-            # tell client its new id
-            self.transport.send('%c%i' % (100, clientid), self.clients[clientid])
+            logging.debug('connected to client: %s' % client_address)
         self.transport.listen(port, connection_handler)
+        return self
+    def connect(self, host, port):
+        self.transport.connect(host, port)
         return self
     def send_message(self, msg, clientid):
         self.transport.send(msg.to_string(), id=self.clients[clientid])
+        return self
     def broadcast_message(self, msg):
         self.transport.send(msg.to_string(), broadcast=True)
         return self
     def tick(self, *args, **kws):
         '''first poll network for packets, then process messages, then object updates'''
-        self.poll(self.packet_handler)
+        self.transport.poll(self.packet_handler)
         return system.ObjectManager.tick(self, *args, **kws)
     def packet_handler(self, packet):
-        type = ord(packet.data[0])
+        packetid = ord(packet.data[0])
         logging.debug('Received packet of type "%s"' % type)
-        if type < 100:
-            logging.warning('Found internal unhandled packet of type "%s"' % self.net.get_packet_type_name(type))
-            return
-        for p in self.registered_packets:
-            if p._id != type:
-                continue
-            a = p()
-            a.decode(packet.data)
-            a.player = packet.player
-            self.queueMessage(a)
-            return
+        if packetid < 100:
+            logging.warning('internal packet unhandled: "%s"' % self.transport.packet_type_info(packetid))
+            return self
+        
+        self.queue_message(self.packet_types[packetid]().from_string(packet.data)) 
+        return self
     def register_packet_type(self, packet_class):
         # skip the base packet class
         if packet_class.__name__ == 'Packet':
@@ -125,6 +111,7 @@ class Packet(system.Message):
                 self.set_property(name, value)
         if pos != len(data):
             raise PacketError('incorrect length upon unpacking %s: got %i expected %i' % (self.__class__.__name__, len(data), pos))
+        return self
     def pack_attr(self, _type, buf, value, name):
         '''pack a single attribute into the running buffer'''
         # custom types
