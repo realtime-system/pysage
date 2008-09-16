@@ -1,5 +1,10 @@
 # transport.py
-import pyraknet
+try:
+    import pyraknet
+except ImportError:
+    RAKNET_AVAILABLE = False
+else:
+    RAKNET_AVAILABLE = True
 
 class Transport(object):
     '''an interface that all transports must implement'''

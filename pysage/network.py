@@ -16,7 +16,10 @@ class NetworkManager(system.ObjectManager):
         system.ObjectManager.init(self)
         # self.gid = network_id.next()
         self.gid = 0
-        self.transport = transport.RakNetTransport()
+        if transport.RAKNET_AVAILABLE:
+            self.transport = transport.RakNetTransport()
+        else:
+            self.transport = transport.Transport()
         self.clients = {}
         self.packet_types = {}
     def start_server(self, port):
