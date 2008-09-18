@@ -3,7 +3,7 @@
 # The list of objects to document.  Objects can be named using
 # dotted names, module filenames, or package directory names.
 # Alases for this option include "objects" and "values".
-modules: messaging, system, transport, network, util
+modules: pysage/messaging.py, pysage/system.py, pysage/network.py, pysage/util.py, pysage/transport.py
 
 # The type of output that should be generated.  Should be one
 # of: html, text, latex, dvi, ps, pdf.
@@ -90,14 +90,14 @@ url: http://code.google.com/p/pysage/
 # The "top" page for the documentation.  Can be a URL, the name
 # of a module or class, or one of the special names "trees.html",
 # "indices.html", or "help.html"
-#top: module-tree.html
+top: pysage.network
 
 # An alternative help file.  The named file should contain the
 # body of an HTML file; navigation bars will be added to it.
 #help: my_helpfile.html
 
 # Whether or not to include a frames-based table of contents.
-frames: yes
+frames: no
 
 # Whether each class should be listed in its own section when
 # generating LaTeX or PDF output.
