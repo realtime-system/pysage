@@ -112,7 +112,7 @@ class Message(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-class MessageManager(util.Singleton):
+class MessageManager(util.ThreadLocalSingleton):
     '''generic message manager singleton class that game object manager inherits from'''
     def init(self):
         self.messageTypes = []
@@ -360,7 +360,4 @@ class MessageManager(util.Singleton):
         self.message_queues = {PySageInternalMainGroup: collections.deque()}
         self.groups = {}
         self.object_group_map = {PySageInternalMainGroup: set()}
-    def __del__(self):
-        util.Singleton.__del__(self)
-        self.reset()
           
