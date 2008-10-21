@@ -60,6 +60,7 @@ class TestMessage(unittest.TestCase):
         receiver = Receiver()
         messageManager.registerReceiver(receiver)
         assert 'Test' in messageManager.messageTypes
+        print messageManager.messageReceiverMap['Test']
         assert messageManager.messageReceiverMap['Test'] == set([receiver])
         
     def test_triggerMessage(self):

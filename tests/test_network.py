@@ -1,15 +1,15 @@
 # test_network.py
-from pysage.network import Packet, NetworkManager, PacketReceiver
+from pysage.system import Message, ActorManager, Actor
 import unittest
 
-nmanager = NetworkManager.get_singleton()
+nmanager = ActorManager.get_singleton()
 
-class TestMessage(Packet):
+class TestMessage(Message):
     properties = ['amount']
     types = ['i']
-    packet_type = 101
+    packet_type = 103
     
-class TestReceiver(PacketReceiver):
+class TestReceiver(Actor):
     pass
 
 class TestNetwork(unittest.TestCase):
@@ -18,7 +18,7 @@ class TestNetwork(unittest.TestCase):
     def test_packing(self):
         p = TestMessage(amount=1)
         print p.to_string()
-        assert p.to_string() == 'e\x00\x00\x00\x01'
+        assert p.to_string() == 'g\x00\x00\x00\x01'
     def test_manager_gid(self):
         assert nmanager.gid == 0
     def test_receiver_gid(self):

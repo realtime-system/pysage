@@ -6,6 +6,31 @@ except ImportError:
 else:
     RAKNET_AVAILABLE = True
 
+connection = None
+
+try:
+    import processing.connection as connection
+except ImportError:
+    pass
+else:
+    def send_bytes(conn, data):
+        return conn.sendbytes(data)
+    def recv_bytes(conn):
+        return conn.recvbytes()
+
+try:
+    import multiprocessing.connection as connection
+except ImportError:
+    pass
+else:
+    def send_bytes(conn, data):
+        return conn.send_bytes(data)
+    def recv_bytes(conn):
+        return conn.recv_bytes()
+
+if not connection:
+    raise Exception('pysage requires either python2.6 or the "processing" module')
+
 class Transport(object):
     '''an interface that all transports must implement'''
     def connect(self, host, port):
@@ -23,6 +48,39 @@ class Transport(object):
     def packet_type_info(self, packet_type_id):
         '''returns information about the packet type'''
         pass
+    @property
+    def address(self):
+        '''returns the address this transport is bound to'''
+        pass
+    
+class IPCPacket(object):
+    def __init__(self, data):
+        self.data = data
+
+class IPCTransport(Transport):
+    def __init__(self):
+        self._connection = None
+        self.peers = {}
+    def listen(self):
+        self._connection = connection.Listener()
+    def connect(self, address):
+        self._connection = connection.Client(address)
+        self.peers[address] = self._connection
+    @property
+    def address(self):
+        return self._connection.address
+    def accept(self):
+        c = self._connection.accept()
+        _clientid = self._connection.last_accepted
+        self.peers[_clientid] = c
+        return _clientid
+    def send(self, data, id=-1, broadcast=False):
+        return send_bytes(self.peers[id], data)
+    def poll(self, packet_handler):
+        for conn in self.peers.values():
+            while conn.poll():
+                packet = IPCPacket(recv_bytes(conn))
+                packet_handler(packet)
 
 class RakNetTransport(Transport):
     def __init__(self):

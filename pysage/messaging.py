@@ -3,37 +3,32 @@
 #   this module builds on the concepts of a trigger system introduced in
 #   the book: "Game Coding Complete - 2nd Edition" by Mike McShaffry
 # this module implements a message manager along with message receivers
-import util
-import threading
 import collections
 import time
-
-__all__ = ['InvalidMessageProperty', 'GroupAlreadyExists', 'GroupDoesNotExist', 'InvalidGroupName']
+import util
 
 WildCardMessageType = '*'
-PySageInternalMainGroup = '__MAIN_GROUP__'
+
+def MessageID():
+    '''generates unique message IDs per runtime'''
+    i = 0
+    while True:
+        yield i
+        i += 1
+messageID = MessageID()
 
 class InvalidMessageProperty(Exception):
     pass
 
-class GroupAlreadyExists(Exception):
-    pass
-
-class GroupDoesNotExist(Exception):
-    pass
-
-class InvalidGroupName(Exception):
-    pass
-
 class MessageReceiver(object):
-    '''generic message receiver class that object message receivers inherit from'''
+    '''generic message receiver class that game object inherits from'''
     # message types this message receiver will subscribe to
     subscriptions = []
     def __init__(self):
         # default update priority is 0
         # determines which object is synced first during update
         self._SYNC_PRIORITY = 0       
-    def handleMessage(self, msg):
+    def handle_message(self, msg):
         '''handles a message received
             returns: True if a message is consumed
         ''' 
@@ -53,19 +48,20 @@ class Message(object):
     '''generic message class'''
     properties= []
     _LOG_LEVEL = 0
-    def __init__(self, receiverID=None, **kws):
+    def __init__(self, sender=None, receiverID=None, **kws):
         self._properties = dict( (x, None) for x in self.properties )
         for name, value in kws.items():
             self.lazySetProperty(name, value)
-        self.gid = self.assign_id()
+        self.sender = sender
+        self.gid = messageID.next()
         self.receiverID = receiverID
-    def assign_id(self):
-        return str(id(self))
     def __repr__(self):
         return 'Message %s %s' % (self.messageType, self.gid)
     @property
     def messageType(self):
         return self.__class__.__name__
+    def get_sender(self):
+        return self.sender
     def lazySetProperty(self, name, value):
         '''this does same as set_property, without validation'''
         self._properties[name] = self.pack_property(name, value)        
@@ -112,7 +108,7 @@ class Message(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-class MessageManager(util.ThreadLocalSingleton):
+class MessageManager(util.ProcessLocalSingleton):
     '''generic message manager singleton class that game object manager inherits from'''
     def init(self):
         self.messageTypes = []
@@ -121,55 +117,9 @@ class MessageManager(util.ThreadLocalSingleton):
         # however these type of receivers cannot consume the message
         self.messageReceiverMap = {WildCardMessageType: set()}
         
-        # we will need a queue per group here
-        # because even if one group could not process the message, it does not mean
-        # that other groups could not process the message
-        # since deques are thread-safe, a group that could not process a message could potentially
-        # pop it off of the central queue and "waste it"
-        # therefore we want it enqueue a message to every group's queue for simultaneous processing
-        # note that this also means that when a message receiver decides that it "handled" the message,
-        # it can only stop propagating that message further within its own group
-        self.message_queues = {PySageInternalMainGroup: collections.deque()}
-        
-        # for groups handling
-        self.groups = {}
-        self.object_group_map = {PySageInternalMainGroup: set()}
-        self._should_quit = False
-    def set_groups(self, gs):
-        '''starts the groups in thread objects and let them run their tick at specified intervals'''
-        for g in gs:
-            self.add_group(g)
-        # returning myself
-        return self
-    def add_group(self, name, max_tick_time=None, interval=.03, minimum_sleep=.001):
-        # make sure we have a str
-        g = str(name)
-        if self.groups.has_key(g):
-            raise GroupAlreadyExists('Group name "%s" already exists.' % g) 
-        # validating group name 
-        if not g and not g == PySageInternalMainGroup:
-            raise InvalidGroupName('Group name "%s" is invalid.' % g) 
-            
-        def _run(manager, group, interval, minimum_sleep):
-            '''interval is in milliseconds of how long to sleep before another tick'''
-            while not manager._should_quit:
-                start = util.get_time()
-                manager.tick(maxTime=max_tick_time, group=group)
-                     
-                # we want to sleep the different between the time it took to process and the interval desired
-                _time_to_sleep = interval - (util.get_time() - start)
-                # incase we have less than minimum required to sleep, we will sleep the minimum
-                if _time_to_sleep < minimum_sleep:
-                    _time_to_sleep = minimum_sleep
-                   
-                time.sleep(_time_to_sleep)
-            return False
-                        
-        self.message_queues[g] = collections.deque()
-        self.groups[g] = threading.Thread(target=_run, name=g, kwargs={'manager':self, 'group':g, 'interval':interval, 'minimum_sleep':minimum_sleep})
-        self.groups[g].start()
-       
-        return self
+        # double buffering to avoid infinite cycles
+        self.activeQueue = collections.deque()
+        self.processingQueue = collections.deque()
     def validateType(self, messageType):
         if not messageType:
             return False
@@ -177,11 +127,7 @@ class MessageManager(util.ThreadLocalSingleton):
             return True
     def validateMessage(self, msg):
         return msg.validate()
-    def validate_group(self, group):
-        # validate that the group exists
-        if not group == PySageInternalMainGroup and not group in self.groups:
-            raise GroupDoesNotExist('Specified group "%s" does not exist.' % group)
-    def tick(self, maxTime=None, group=PySageInternalMainGroup):
+    def tick(self, maxTime=None):
         '''
         Process queued messages.
         
@@ -193,50 +139,34 @@ class MessageManager(util.ThreadLocalSingleton):
             - true: if all messages ready for processing were completed
             - false: otherwise (i.e.: processing took more than maxTime)
         '''
-        self.validate_group(group)
-        # save off the number of messages that we have at this point
-        # so that we never process more than this amount of messages to prevent infinite cycle
-        # if a message receiver sends a message to the queue while processing
-        message_count = len(self.message_queues[group])
-        message_processed = 0
-        
-        startTime = util.get_time()
-        while len(self.message_queues[group]) and message_processed < message_count:
-            # keep track of the count so that we do not process more than necessary
-            message_processed += 1
-            
-            # in another multh-threaded environment, another thread that calls tick could have empties the queue here
-            try:
-                # always pop the message off the queue, if there is no listeners for this message yet
-                # then the message will be dropped off the queue
-                msg = self.message_queues[group].popleft()
-            # if someone else popped off my message, I just move on
-            except IndexError:
-                break
-                
+        # swap queues and clear the activeQueue
+        self.activeQueue, self.processingQueue = self.processingQueue, self.activeQueue
+        self.activeQueue.clear()
+        startTime = time.time()
+        while len(self.processingQueue):
+            # always pop the message off the queue, if there is no listeners for this message yet
+            # then the message will be dropped off the queue
+            msg = self.processingQueue.popleft()
             # for receivers that handle all messages let them handle this
-            for r in self.messageReceiverMap[WildCardMessageType] & self.object_group_map.get(group, set()):
-                r.handleMessage(msg)
+            for r in self.messageReceiverMap[WildCardMessageType]:
+                r.handle_message(msg)
             # now pass msg to message receivers that subscribed to this message type
-            receivers = self.messageReceiverMap.get(msg.messageType, set()) & self.object_group_map.get(group, set())
-            for r in receivers:
-                # this message will only be processed by potentially one receiver
-                if msg.receiverID:
-                    if self.designated_to_handle(r, msg):
-                        r.handleMessage(msg)
-                        # break regardless because the receiver is the only one handling this message
-                        break
-                else:
-                    # if this message was handled within this group, then stop propagating the message to the
-                    # rest of the group
-                    # Note: this does not stop the message from being further propagated in other groups
-                    #       cannot prevent multiple receivers processing the same message without a lock
-                    if r.handleMessage(msg):
-                        break
-            if maxTime and util.get_time() - startTime > maxTime:
+            for r in self.messageReceiverMap.get(msg.messageType, []):
+                if not self.designated_to_handle(r, msg):
+                    continue
+                # finish this message if it was handled or had designated receiver
+                if r.handle_message(msg) or msg.receiverID:
+                    break
+            if maxTime and time.time() - startTime > maxTime:
                 break
             
-        return len(self.message_queues[group]) == 0
+        flushed = len(self.processingQueue) == 0
+        # push any left over messages to the active queue
+        # bottom-up on the processQueue and push to the front of activeQueue
+        if not flushed:
+            while len(self.processingQueue):
+                self.activeQueue.appendleft(self.processingQueue.pop())
+        return flushed
     def designated_to_handle(self, r, m):
         '''this method is called before a receiver handles a message
         
@@ -249,23 +179,22 @@ class MessageManager(util.ThreadLocalSingleton):
         '''
         return True
     def abort_message(self, msgType, abortAll=True):
-        '''find the next message that is of the type msgType and remove it from each queue
-            return: true if the event was found and removed, false otherwise
+        '''Find the next-available instance of the named event type and remove it from the processing queue.
+            This may be done up to the point that it is actively being processed ...
+            e.g.: is safe to happen during event processing itself.
+            return: true if the event was found and removed
+                    false otherwise
         '''
         if not self.validateType(msgType):
             return False
         success = False
-        for queue in self.message_queues.values():
-            for i in [x for x in queue if x.messageType == msgType]:
-                # queue.remove(v) only available in python 2.5
-                queue.remove(i)
-                success = True
-                if not abortAll:
-                    break
+        for i in [x for x in self.activeQueue if x.messageType == msgType]:
+            # queue.remove(v) only available in python 2.5
+            self.activeQueue.remove(i)
+            success = True
+            if not abortAll:
+                return True
         return success
-    def get_message_count(self, group=PySageInternalMainGroup):
-        self.validate_group(group)
-        return len(self.message_queues[group])
     def queue_message(self, msg):
         '''asychronously queues a message to be processed
         
@@ -281,20 +210,23 @@ class MessageManager(util.ThreadLocalSingleton):
         if not self.messageReceiverMap.has_key(msg.messageType) and not self.messageReceiverMap[WildCardMessageType]:
             return False
         else:
-            map(lambda q: q.append(msg), self.message_queues.values())
+            self.activeQueue.append(msg)
             return True
     def trigger(self, msg):
-        '''synchronously processes a message without putting it on the queue
+        '''Fire off message (synchronous) do it NOW kind of thing, analogous to Win32 SendMessage() API.
             return: true if the event was consumed, false if not. 
+            note: that it is acceptable for all event listeners to act on an event and not consume it
+                this return signature exists to allow complete propogation of that shred of information from the internals of 
+                this system to outside uesrs.
         '''
         if not self.validateType(msg.messageType):
             return False
         # for receivers that register to all events, send the message to them
-        map(lambda x: x.handleMessage(msg), self.messageReceiverMap[WildCardMessageType])
+        map(lambda x: x.handle_message(msg), self.messageReceiverMap[WildCardMessageType])
         # Now loop thru the receivers that actually subscribed to this particular message type
         processed = False
-        for r in self.messageReceiverMap.get(msg.messageType, set()):
-            if r.handleMessage(msg):
+        for r in self.messageReceiverMap.get(msg.messageType, []):
+            if r.handle_message(msg):
                 processed = True
         return processed
     def addReceiver(self, receiver, msgType):
@@ -329,35 +261,18 @@ class MessageManager(util.ThreadLocalSingleton):
         else:
             self.messageReceiverMap[msgType].remove(receiver)
             return True
-    def registerReceiver(self, receiver, group=''):
+    def registerReceiver(self, receiver):
         for s in receiver.subscriptions:
             self.addReceiver(receiver, s)
-        if group:
-            if not self.groups.has_key(group):
-                raise GroupDoesNotExist('Group "%s" does not exist.' % group)
-            if not group in self.object_group_map:
-                self.object_group_map[group] = set()
-            self.object_group_map[group].add(receiver)
-        else:
-            self.object_group_map[PySageInternalMainGroup].add(receiver)
     def unregisterReceiver(self, receiver):
         for s in receiver.subscriptions:
             self.removeReceiver(receiver, s)
-        # remove this receiver from any group that it belongs to
-        for members in self.object_group_map.values():
-            if receiver in members:
-                members.remove(receiver)
+    def get_message_count(self):
+        return len(self.activeQueue)
     def reset(self):
         '''removes all messages, receivers, used for debugging/testing'''
-        self._should_quit = True
-        # exist all threads
-        for g in self.groups.values():
-            g.join() 
-            
-        self._should_quit = False
         self.messageTypes = []
-        self.messageReceiverMap = {WildCardMessageType: set()}
-        self.message_queues = {PySageInternalMainGroup: collections.deque()}
-        self.groups = {}
-        self.object_group_map = {PySageInternalMainGroup: set()}
+        self.messageReceiverMap = {WildCardMessageType: []}
+        self.activeQueue = collections.deque()
+        self.processingQueue = collections.deque()
           
