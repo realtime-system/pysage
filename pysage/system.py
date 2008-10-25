@@ -26,31 +26,11 @@ THE SOFTWARE.
 import struct
 import messaging
 import transport
-import logging
 import util
 import time
+import process as processing
 
 __all__ = ('Message', 'ActorManager', 'Actor', 'PacketError', 'PacketTypeError', 'GroupAlreadyExists', 'GroupDoesNotExist', 'CreateGroupError')
-
-processing = None
-
-try:
-    import processing as processing
-except ImportError:
-    pass
-else:
-    processing.enableLogging(level=logging.INFO)
-    logger = processing.getLogger()
-
-try:
-    import multiprocessing as processing
-except ImportError:
-    pass
-else:
-    logger = processing.get_logger()
-
-if not processing:
-    raise Exception('pysage requires either python2.6 or the "processing" module')
 
 class PacketError(Exception):
     pass
@@ -79,7 +59,7 @@ def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_
         # on *nix, forking would cause packets NOT be auto-registered
         manager.packet_types = packet_types
     manager._ipc_connect(server_addr, _should_quit)
-    logger.info('process "%s" is bound to address: "%s"' % (processing.current_process().pid, manager.ipc_transport._connection.fileno()))
+    processing.get_logger().info('process "%s" is bound to address: "%s"' % (processing.get_pid(processing.current_process()), manager.ipc_transport._connection.fileno()))
     if default_actor_class:
         manager.register_actor(default_actor_class())
     while not manager._should_quit.value:
@@ -172,7 +152,7 @@ class ActorManager(messaging.MessageManager):
         '''first poll process for packets, then network messages, then object updates'''
         self.ipc_transport.poll(self.packet_handler)
         self.transport.poll(self.packet_handler)
-        logger.debug('process "%s" queue length: %s' % (processing.current_process().pid, self.queue_length))
+        processing.get_logger().debug('process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
         
         # process all messages first
         ret = messaging.MessageManager.tick(self, **kws)
@@ -193,7 +173,7 @@ class ActorManager(messaging.MessageManager):
         self.groups[self.MAIN_GROUP_NAME] = (None,server_addr,None)
     def listen(self, port):
         def connection_handler(client_address):
-            logging.debug('connected to client: %s' % client_address)
+            processing.get_logger().debug('connected to client: %s' % client_address)
         self.transport.listen(port, connection_handler)
         return self
     def connect(self, host, port):
@@ -205,16 +185,16 @@ class ActorManager(messaging.MessageManager):
     def queue_message_to_group(self, msg, group):
         '''message is serialized and sent to the group (process) specified'''
         p, _clientid, switch = self.groups[group]
-        logger.info('queuing message "%s" to "%s"' % (msg, self.ipc_transport.peers[_clientid].fileno()))
+        processing.get_logger().info('queuing message "%s" to "%s"' % (msg, self.ipc_transport.peers[_clientid].fileno()))
         self.ipc_transport.send(msg.to_string(), _clientid)
     def broadcast_message(self, msg):
         self.transport.send(msg.to_string(), broadcast=True)
         return self
     def packet_handler(self, packet):
         packetid = ord(packet.data[0])
-        logging.debug('Received packet of type "%s"' % type)
+        processing.get_logger().debug('Received packet of type "%s"' % type)
         if packetid < 100:
-            logging.warning('internal packet unhandled: "%s"' % self.transport.packet_type_info(packetid))
+            processing.get_logger().warning('internal packet unhandled: "%s"' % self.transport.packet_type_info(packetid))
             return self
         p = self.packet_types[packetid]().from_string(packet.data)
         self.queue_message(self.packet_types[packetid]().from_string(packet.data)) 
@@ -244,7 +224,7 @@ class ActorManager(messaging.MessageManager):
         actor_class = default_actor_class or DefaultActor
         p = processing.Process(target=_subprocess_main, name=name, args=(name, actor_class, max_tick_time, interval, server_addr, switch, self.packet_types))
         p.start()
-        logger.info('started group "%s" in process "%s"' % (name, p.pid))
+        processing.get_logger().info('started group "%s" in process "%s"' % (name, processing.get_pid(p)))
         _clientid = self.ipc_transport.accept()
         self.groups[g] = (p, _clientid, switch)
     def remove_process_group(self, name):

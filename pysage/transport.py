@@ -1,35 +1,11 @@
 # transport.py
+import process as processing
 try:
     import pyraknet
 except ImportError:
     RAKNET_AVAILABLE = False
 else:
     RAKNET_AVAILABLE = True
-
-connection = None
-
-try:
-    import processing.connection as connection
-except ImportError:
-    pass
-else:
-    def send_bytes(conn, data):
-        return conn.sendbytes(data)
-    def recv_bytes(conn):
-        return conn.recvbytes()
-
-try:
-    import multiprocessing.connection as connection
-except ImportError:
-    pass
-else:
-    def send_bytes(conn, data):
-        return conn.send_bytes(data)
-    def recv_bytes(conn):
-        return conn.recv_bytes()
-
-if not connection:
-    raise Exception('pysage requires either python2.6 or the "processing" module')
 
 class Transport(object):
     '''an interface that all transports must implement'''
@@ -62,9 +38,9 @@ class IPCTransport(Transport):
         self._connection = None
         self.peers = {}
     def listen(self):
-        self._connection = connection.Listener()
+        self._connection = processing.connection.Listener()
     def connect(self, address):
-        self._connection = connection.Client(address)
+        self._connection = processing.connection.Client(address)
         self.peers[address] = self._connection
     @property
     def address(self):
@@ -75,11 +51,11 @@ class IPCTransport(Transport):
         self.peers[_clientid] = c
         return _clientid
     def send(self, data, id=-1, broadcast=False):
-        return send_bytes(self.peers[id], data)
+        return processing.send_bytes(self.peers[id], data)
     def poll(self, packet_handler):
         for conn in self.peers.values():
             while conn.poll():
-                packet = IPCPacket(recv_bytes(conn))
+                packet = IPCPacket(processing.recv_bytes(conn))
                 packet_handler(packet)
 
 class RakNetTransport(Transport):
