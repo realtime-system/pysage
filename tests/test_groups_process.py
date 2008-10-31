@@ -78,6 +78,8 @@ class TestGroupsProcess(unittest.TestCase):
 
         nmanager.remove_process_group('a')
 
+        self.assertRaises(GroupDoesNotExist, nmanager.queue_message_to_group, PingMessage(secret=1234), 'a')
+
         assert len(nmanager.groups) == 1
         assert len(active_children()) == 1
     def test_sending_message(self):
@@ -88,5 +90,33 @@ class TestGroupsProcess(unittest.TestCase):
         time.sleep(1)
         nmanager.tick()
         assert nmanager.find('pong_receiver').received_secret == 1234
+    def test_multi_group_message(self):
+        nmanager.register_actor(PongReceiver(), 'pong_receiver')
+        assert not nmanager.find('pong_receiver').received_secret
+
+        self.assertRaises(GroupDoesNotExist, nmanager.queue_message_to_group, PingMessage(secret=1234), 'a')
+
+        nmanager.add_process_group('a', PingReceiver)
+        self.assertRaises(GroupAlreadyExists, nmanager.add_process_group, 'a', PingReceiver)
+        nmanager.add_process_group('b', PingReceiver)
+        
+        nmanager.queue_message_to_group(PingMessage(secret=1234), 'a')
+        time.sleep(1)
+        nmanager.tick()
+
+        assert nmanager.find('pong_receiver').received_secret == 1234
+        nmanager.find('pong_receiver').received_secret = None
+
+        nmanager.queue_message_to_group(PingMessage(secret=1234), 'b')
+        time.sleep(1)
+        nmanager.tick()
+        assert nmanager.find('pong_receiver').received_secret == 1234
+
+
+
+
+
+
+
         
 

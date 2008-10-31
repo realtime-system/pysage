@@ -65,7 +65,7 @@ def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_
     while not manager._should_quit.value:
         start = util.get_time()
         manager.tick(maxTime=max_tick_time)
-        # we want to sleep the different between the time it took to process and the interval desired
+        # we want to sleep the difference between the time it took to process and the interval desired
         _time_to_sleep = interval - (util.get_time() - start)
         time.sleep(_time_to_sleep)
     return False
@@ -184,6 +184,8 @@ class ActorManager(messaging.MessageManager):
         return self
     def queue_message_to_group(self, msg, group):
         '''message is serialized and sent to the group (process) specified'''
+        if not self.groups.has_key(group):
+            raise GroupDoesNotExist('Group "%s" does not exist' % group)
         p, _clientid, switch = self.groups[group]
         processing.get_logger().info('queuing message "%s" to "%s"' % (msg, self.ipc_transport.peers[_clientid].fileno()))
         self.ipc_transport.send(msg.to_string(), _clientid)
