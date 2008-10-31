@@ -266,24 +266,27 @@ class ActorManager(messaging.MessageManager):
         self.ipc_transport = transport.IPCTransport()
                 
 class Actor(messaging.MessageReceiver):
+    '''actor class extends the message receiver class to provide actor like functionality'''
     @property
     def gid(self):
         '''return a globally unique id that is good cross processes'''
         return (ActorManager.get_singleton().gid, id(self))
     
 class DefaultActor(Actor):
+    '''default actor for a group - group is assigned this actor if no default actor is specified'''
     subscriptions = [messaging.WildCardMessageType]
     def handle_message(self, msg):
         processing.get_logger().info('Default actor received message "%s"' % msg)
         return False
 
 class AutoMessageRegister(type):
+    '''metaclass that auto register all message classes with the actor manager'''
     def __init__(cls, name, bases, dct):
         super(AutoMessageRegister, cls).__init__(name, bases, dct)
         ActorManager.get_singleton().register_packet_type(cls)
         
 class Message(messaging.Message):
-    '''a packet is a network message'''
+    '''extends messaging.Message to provide network functionality'''
     __metaclass__ = AutoMessageRegister
     types = []
     packet_type = None
