@@ -91,7 +91,7 @@ class ActorManager(messaging.MessageManager):
         self.is_main_process = None
         self.ipc_transport = transport.IPCTransport()
     def find(self, name):
-        '''returns an object by its name, None if not found'''
+        '''returns an actor by its name, None if not found'''
         return self.get_actor_by_name(name)
     def get_actor(self, id):
         return self.objectIDMap.get(id, None)
@@ -102,7 +102,7 @@ class ActorManager(messaging.MessageManager):
         return self.objectIDMap.values()
     def trigger_to_actor(self, id, msg):
         '''
-        sends a particular game object a message if that game object implements this message type
+        sends a particular game actor a message if that game actor implements this message type
         
         return:
         
@@ -110,7 +110,7 @@ class ActorManager(messaging.MessageManager):
         - `False`: otherwise
         '''
         obj = self.objectIDMap[id]
-        for recr in self.messageReceiverMap[messaging.WildCardMessageType]:
+        for recr in self.message_receiver_map[messaging.WildCardMessageType]:
             recr.handle_message(msg)
         return obj.handle_message(msg)
     def queue_message_to_actor(self, id, msg):
@@ -118,16 +118,16 @@ class ActorManager(messaging.MessageManager):
         self.queue_message(msg)
         return True
     def register_actor(self, obj, name=None):
-        messaging.MessageManager.registerReceiver(self, obj)
+        messaging.MessageManager.register_receiver(self, obj)
         self.objectIDMap[obj.gid] = obj
         if name:
             self.objectNameMap[name] = obj
         return obj
     def unregister_actor(self, obj):
-        messaging.MessageManager.unregisterReceiver(self, obj)
+        messaging.MessageManager.unregister_receiver(self, obj)
         del self.objectIDMap[obj.gid]
         
-        # deleting the object from the dictionary the safe way
+        # deleting the actor from the dictionary the safe way
         n = None
         for name,o in self.objectNameMap.items():
             if o == obj:
@@ -148,15 +148,15 @@ class ActorManager(messaging.MessageManager):
             # if receiverID isn't specified, whoever registers can handle this message
             return True
     def tick(self, evt=None, **kws):
-        '''calls update on all objects before message manager ticks'''
-        '''first poll process for packets, then network messages, then object updates'''
+        '''calls update on all actors before message manager ticks'''
+        '''first poll process for packets, then network messages, then actor updates'''
         self.ipc_transport.poll(self.packet_handler)
         self.transport.poll(self.packet_handler)
         processing.get_logger().debug('process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
         
         # process all messages first
         ret = messaging.MessageManager.tick(self, **kws)
-        # then update all the game objects
+        # then update all the game actors
         objs = self.objectIDMap.values()
         objs.sort(lambda x,y: y._SYNC_PRIORITY - x._SYNC_PRIORITY)
         map(lambda x: x.update(evt), objs)
@@ -245,7 +245,7 @@ class ActorManager(messaging.MessageManager):
         self.groups = {}
     @property
     def queue_length(self):
-        return len(self.activeQueue)
+        return len(self.active_queue)
     def reset(self):
         '''mainly used for testing'''
         messaging.MessageManager.reset(self)

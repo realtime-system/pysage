@@ -54,18 +54,18 @@ class TestMessage(unittest.TestCase):
         
     def test_createMessage(self):
         msg = Test(name='Test')
-        assert msg.messageType == 'Test'
+        assert msg.message_type == 'Test'
         
     def test_createReceiver(self):
         receiver = Receiver()
-        messageManager.registerReceiver(receiver)
-        assert 'Test' in messageManager.messageTypes
-        print messageManager.messageReceiverMap['Test']
-        assert messageManager.messageReceiverMap['Test'] == set([receiver])
+        messageManager.register_receiver(receiver)
+        assert 'Test' in messageManager.message_types
+        print messageManager.message_receiver_map['Test']
+        assert messageManager.message_receiver_map['Test'] == set([receiver])
         
     def test_triggerMessage(self):
         receiver = Receiver()
-        messageManager.registerReceiver(receiver)
+        messageManager.register_receiver(receiver)
         msg = Test(name='Test')
         # make sure that the receiver isn't consuming the msg, therefore the trigger will return
         # saying that the message wasn't consumed
@@ -73,7 +73,7 @@ class TestMessage(unittest.TestCase):
         
     def test_queue_message(self):
         receiver = Receiver()
-        messageManager.registerReceiver(receiver)
+        messageManager.register_receiver(receiver)
         msg = Test(name='Test')
         messageManager.queue_message(msg)
         assert messageManager.get_message_count() == 1
@@ -82,7 +82,7 @@ class TestMessage(unittest.TestCase):
         
     def test_abort_message(self):
         receiver = Receiver()
-        messageManager.registerReceiver(receiver)
+        messageManager.register_receiver(receiver)
         msg = Test(name='Test')
         messageManager.queue_message(msg)
         assert messageManager.get_message_count() == 1
@@ -91,12 +91,12 @@ class TestMessage(unittest.TestCase):
         
     def test_twoMessages(self):
         receiver = Receiver()
-        messageManager.registerReceiver(receiver)
+        messageManager.register_receiver(receiver)
         msg = Test(name='Test')
         messageManager.queue_message(msg)
         msg2 = Message()
         messageManager.queue_message(msg2)
-        assert not 'Message' in messageManager.messageTypes and 'Test' in messageManager.messageTypes
+        assert not 'Message' in messageManager.message_types and 'Test' in messageManager.message_types
         assert messageManager.get_message_count() == 1
         # unhandled messages will be dropped
         assert messageManager.tick()
@@ -105,8 +105,8 @@ class TestMessage(unittest.TestCase):
     def test_slowReceiver(self):
         receiver1 = Receiver()
         receiver2 = SlowReceiver()
-        messageManager.registerReceiver(receiver1)
-        messageManager.registerReceiver(receiver2)
+        messageManager.register_receiver(receiver1)
+        messageManager.register_receiver(receiver2)
         msg1 = Test(name='Good')
         msg2 = Test(name='Day')
         messageManager.queue_message(msg1)
@@ -120,7 +120,7 @@ class TestMessage(unittest.TestCase):
         
     def test_manyMessages(self):
         receiver = ManyMsgReceiver()
-        messageManager.registerReceiver(receiver)
+        messageManager.register_receiver(receiver)
         for i in range(5000):
             msg = Test(name='Bla')
             messageManager.queue_message(msg)
@@ -131,7 +131,7 @@ class TestMessage(unittest.TestCase):
         
     def test_receiverProducesMsg(self):
         receiver = MsgProducer()
-        messageManager.registerReceiver(receiver)
+        messageManager.register_receiver(receiver)
         messageManager.queue_message(Test(name='bla'))
         assert messageManager.get_message_count() == 1
         messageManager.tick()
@@ -141,11 +141,11 @@ class TestMessage(unittest.TestCase):
         
     def test_unregisteredReceiver(self):
         receiver = ManyMsgReceiver()
-        messageManager.registerReceiver(receiver)
+        messageManager.register_receiver(receiver)
         for i in range(5000):
             msg = Test(name='bla')
             messageManager.queue_message(msg)
-        messageManager.unregisterReceiver(receiver)
+        messageManager.unregister_receiver(receiver)
         messageManager.tick()
         assert receiver.counter == 0
         

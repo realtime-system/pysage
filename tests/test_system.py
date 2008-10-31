@@ -31,10 +31,10 @@ class TestGameObject(unittest.TestCase):
         mgr.reset()
     def test_createGameObject(self):
         obj = Punk()
-        mgr.registerReceiver(obj)
+        mgr.register_receiver(obj)
         assert obj.gid == (mgr.gid, id(obj))
         obj = Punk()
-        mgr.registerReceiver(obj)
+        mgr.register_receiver(obj)
         assert obj.gid == (mgr.gid, id(obj))
         
     def test_registerObj(self):

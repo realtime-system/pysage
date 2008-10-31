@@ -33,7 +33,7 @@ class MessageReceiver(object):
             returns: True if a message is consumed
         ''' 
         # see if this mssage receiver implements a handler for this msg
-        method = 'handle_' + msg.messageType
+        method = 'handle_' + msg.message_type
         if hasattr(self, method):
             return getattr(self, method)(msg)
         else:
@@ -51,18 +51,18 @@ class Message(object):
     def __init__(self, sender=None, receiverID=None, **kws):
         self._properties = dict( (x, None) for x in self.properties )
         for name, value in kws.items():
-            self.lazySetProperty(name, value)
+            self.lazy_set_property(name, value)
         self.sender = sender
         self.gid = messageID.next()
         self.receiverID = receiverID
     def __repr__(self):
-        return 'Message %s %s' % (self.messageType, self.gid)
+        return 'Message %s %s' % (self.message_type, self.gid)
     @property
-    def messageType(self):
+    def message_type(self):
         return self.__class__.__name__
     def get_sender(self):
         return self.sender
-    def lazySetProperty(self, name, value):
+    def lazy_set_property(self, name, value):
         '''this does same as set_property, without validation'''
         self._properties[name] = self.pack_property(name, value)        
     def set_property(self, name, value):
@@ -96,7 +96,7 @@ class Message(object):
                 false otherwise
         '''
         if set(self._properties.keys()) ^ set(self.properties):
-            raise InvalidMessageProperty('Message %s received invalid properties: %s' % (self.messageType, list(set(self._properties.keys()) ^ set(self.properties))))
+            raise InvalidMessageProperty('Message %s received invalid properties: %s' % (self.message_type, list(set(self._properties.keys()) ^ set(self.properties))))
         return True
     def on_receipt(self, *args, **kws):
         '''abstract method to be implemented with application
@@ -111,21 +111,21 @@ class Message(object):
 class MessageManager(util.ProcessLocalSingleton):
     '''generic message manager singleton class that game object manager inherits from'''
     def init(self):
-        self.messageTypes = []
+        self.message_types = []
         # WildCardMessageType is the wild card message type, 
         # all receivers that subscribe to this receive all messages
         # however these type of receivers cannot consume the message
-        self.messageReceiverMap = {WildCardMessageType: set()}
+        self.message_receiver_map = {WildCardMessageType: set()}
         
         # double buffering to avoid infinite cycles
-        self.activeQueue = collections.deque()
-        self.processingQueue = collections.deque()
-    def validateType(self, messageType):
-        if not messageType:
+        self.active_queue = collections.deque()
+        self.processing_queue = collections.deque()
+    def validate_type(self, message_type):
+        if not message_type:
             return False
         else:
             return True
-    def validateMessage(self, msg):
+    def validate_message(self, msg):
         return msg.validate()
     def tick(self, maxTime=None):
         '''
@@ -139,19 +139,19 @@ class MessageManager(util.ProcessLocalSingleton):
             - true: if all messages ready for processing were completed
             - false: otherwise (i.e.: processing took more than maxTime)
         '''
-        # swap queues and clear the activeQueue
-        self.activeQueue, self.processingQueue = self.processingQueue, self.activeQueue
-        self.activeQueue.clear()
+        # swap queues and clear the active_queue
+        self.active_queue, self.processing_queue = self.processing_queue, self.active_queue
+        self.active_queue.clear()
         startTime = time.time()
-        while len(self.processingQueue):
+        while len(self.processing_queue):
             # always pop the message off the queue, if there is no listeners for this message yet
             # then the message will be dropped off the queue
-            msg = self.processingQueue.popleft()
+            msg = self.processing_queue.popleft()
             # for receivers that handle all messages let them handle this
-            for r in self.messageReceiverMap[WildCardMessageType]:
+            for r in self.message_receiver_map[WildCardMessageType]:
                 r.handle_message(msg)
             # now pass msg to message receivers that subscribed to this message type
-            for r in self.messageReceiverMap.get(msg.messageType, []):
+            for r in self.message_receiver_map.get(msg.message_type, []):
                 if not self.designated_to_handle(r, msg):
                     continue
                 # finish this message if it was handled or had designated receiver
@@ -160,12 +160,12 @@ class MessageManager(util.ProcessLocalSingleton):
             if maxTime and time.time() - startTime > maxTime:
                 break
             
-        flushed = len(self.processingQueue) == 0
+        flushed = len(self.processing_queue) == 0
         # push any left over messages to the active queue
-        # bottom-up on the processQueue and push to the front of activeQueue
+        # bottom-up on the processQueue and push to the front of active_queue
         if not flushed:
-            while len(self.processingQueue):
-                self.activeQueue.appendleft(self.processingQueue.pop())
+            while len(self.processing_queue):
+                self.active_queue.appendleft(self.processing_queue.pop())
         return flushed
     def designated_to_handle(self, r, m):
         '''this method is called before a receiver handles a message
@@ -189,12 +189,12 @@ class MessageManager(util.ProcessLocalSingleton):
         - 'True': if the event was found and removed
         - 'False': otherwise
         '''
-        if not self.validateType(msgType):
+        if not self.validate_type(msgType):
             return False
         success = False
-        for i in [x for x in self.activeQueue if x.messageType == msgType]:
+        for i in [x for x in self.active_queue if x.message_type == msgType]:
             # queue.remove(v) only available in python 2.5
-            self.activeQueue.remove(i)
+            self.active_queue.remove(i)
             success = True
             if not abortAll:
                 return True
@@ -206,15 +206,15 @@ class MessageManager(util.ProcessLocalSingleton):
                - true: if the message was added to the processing queue
                - false: otherwise.
         '''
-        if not self.validateMessage(msg):
+        if not self.validate_message(msg):
             return False
-        if not self.validateType(msg.messageType):
+        if not self.validate_type(msg.message_type):
             return False
         # Here we need to gracefully handle messages of type that isn't subscribed by any receivers
-        if not self.messageReceiverMap.has_key(msg.messageType) and not self.messageReceiverMap[WildCardMessageType]:
+        if not self.message_receiver_map.has_key(msg.message_type) and not self.message_receiver_map[WildCardMessageType]:
             return False
         else:
-            self.activeQueue.append(msg)
+            self.active_queue.append(msg)
             return True
     def trigger(self, msg):
         '''
@@ -229,17 +229,17 @@ class MessageManager(util.ProcessLocalSingleton):
         this return signature exists to allow complete propogation of that shred of information 
         from the internals of this system to outside uesrs.
         '''
-        if not self.validateType(msg.messageType):
+        if not self.validate_type(msg.message_type):
             return False
         # for receivers that register to all events, send the message to them
-        map(lambda x: x.handle_message(msg), self.messageReceiverMap[WildCardMessageType])
+        map(lambda x: x.handle_message(msg), self.message_receiver_map[WildCardMessageType])
         # Now loop thru the receivers that actually subscribed to this particular message type
         processed = False
-        for r in self.messageReceiverMap.get(msg.messageType, []):
+        for r in self.message_receiver_map.get(msg.message_type, []):
             if r.handle_message(msg):
                 processed = True
         return processed
-    def addReceiver(self, receiver, msgType):
+    def add_receiver(self, receiver, msgType):
         '''
         registers the receiver with the message type
         
@@ -247,42 +247,42 @@ class MessageManager(util.ProcessLocalSingleton):
             - true: if success
             - false: otherwise
         '''
-        if not self.validateType(msgType):
+        if not self.validate_type(msgType):
             return False
         # if this is a new type, add to message types and register receiver
-        if not msgType in self.messageTypes:
-            self.messageTypes.append(msgType)
-            self.messageReceiverMap[msgType] = set([receiver])
+        if not msgType in self.message_types:
+            self.message_types.append(msgType)
+            self.message_receiver_map[msgType] = set([receiver])
         # known msg type, just register receiver
         else:
-            self.messageReceiverMap[msgType].add(receiver)
+            self.message_receiver_map[msgType].add(receiver)
         return True
-    def removeReceiver(self, receiver, msgType):
+    def remove_receiver(self, receiver, msgType):
         '''un-register the receiver with the message type
         
            :Return:
                - true: if successfully unregistered
                - false: if the pair is not found in registry
         '''
-        if not self.validateType(msgType):
+        if not self.validate_type(msgType):
             return False
-        if not receiver in self.messageReceiverMap[msgType]:
+        if not receiver in self.message_receiver_map[msgType]:
             return False
         else:
-            self.messageReceiverMap[msgType].remove(receiver)
+            self.message_receiver_map[msgType].remove(receiver)
             return True
-    def registerReceiver(self, receiver):
+    def register_receiver(self, receiver):
         for s in receiver.subscriptions:
-            self.addReceiver(receiver, s)
-    def unregisterReceiver(self, receiver):
+            self.add_receiver(receiver, s)
+    def unregister_receiver(self, receiver):
         for s in receiver.subscriptions:
-            self.removeReceiver(receiver, s)
+            self.remove_receiver(receiver, s)
     def get_message_count(self):
-        return len(self.activeQueue)
+        return len(self.active_queue)
     def reset(self):
         '''removes all messages, receivers, used for debugging/testing'''
-        self.messageTypes = []
-        self.messageReceiverMap = {WildCardMessageType: []}
-        self.activeQueue = collections.deque()
-        self.processingQueue = collections.deque()
+        self.message_types = []
+        self.message_receiver_map = {WildCardMessageType: []}
+        self.active_queue = collections.deque()
+        self.processing_queue = collections.deque()
           
