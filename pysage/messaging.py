@@ -179,11 +179,15 @@ class MessageManager(util.ProcessLocalSingleton):
         '''
         return True
     def abort_message(self, msgType, abortAll=True):
-        '''Find the next-available instance of the named event type and remove it from the processing queue.
-            This may be done up to the point that it is actively being processed ...
-            e.g.: is safe to happen during event processing itself.
-            return: true if the event was found and removed
-                    false otherwise
+        '''
+        Find the next-available instance of the named event type and remove it from the processing queue.
+        This may be done up to the point that it is actively being processed ...
+        e.g.: is safe to happen during event processing itself.
+
+        return: 
+
+        - 'True': if the event was found and removed
+        - 'False': otherwise
         '''
         if not self.validateType(msgType):
             return False
@@ -213,11 +217,17 @@ class MessageManager(util.ProcessLocalSingleton):
             self.activeQueue.append(msg)
             return True
     def trigger(self, msg):
-        '''Fire off message (synchronous) do it NOW kind of thing, analogous to Win32 SendMessage() API.
-            return: true if the event was consumed, false if not. 
-            note: that it is acceptable for all event listeners to act on an event and not consume it
-                this return signature exists to allow complete propogation of that shred of information from the internals of 
-                this system to outside uesrs.
+        '''
+        same as queue_message, except that this is synchronous
+
+        return:
+
+        - 'True': if the event was consumed
+        - 'False': otherwise
+
+        it is acceptable for all event listeners to act on an event and not consume it 
+        this return signature exists to allow complete propogation of that shred of information 
+        from the internals of this system to outside uesrs.
         '''
         if not self.validateType(msg.messageType):
             return False
