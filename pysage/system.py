@@ -72,7 +72,7 @@ def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_
 
 class ActorManager(messaging.MessageManager):
     '''provides actor, IPC and network functionality'''
-    MAIN_GROUP_NAME = '__MAIN_GROUP__'
+    PYSAGE_MAIN_GROUP = '__MAIN_GROUP__'
     def init(self):
         messaging.MessageManager.init(self)
         self.objectIDMap = {}
@@ -170,7 +170,7 @@ class ActorManager(messaging.MessageManager):
         self.is_main_process = False
         self.ipc_transport.connect(server_addr)
         self._should_quit = _should_quit
-        self.groups[self.MAIN_GROUP_NAME] = (None,server_addr,None)
+        self.groups[self.PYSAGE_MAIN_GROUP] = (None,server_addr,None)
     def listen(self, port):
         def connection_handler(client_address):
             processing.get_logger().debug('connected to client: %s' % client_address)

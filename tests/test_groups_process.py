@@ -39,7 +39,7 @@ class PingReceiver(Actor):
     subscriptions = ['PingMessage']
     def handle_PingMessage(self, msg):
         nmanager = ActorManager.get_singleton()
-        nmanager.queue_message_to_group(PongMessage(secret=1234), nmanager.MAIN_GROUP_NAME)
+        nmanager.queue_message_to_group(PongMessage(secret=1234), nmanager.PYSAGE_MAIN_GROUP)
         return True
     
 class PongReceiver(Actor):
