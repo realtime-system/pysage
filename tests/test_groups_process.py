@@ -119,8 +119,9 @@ class TestGroupsProcess(unittest.TestCase):
         assert nmanager.find('pong_receiver').received_secret == 1234
     def test_fail_default_actor(self):
         '''the main process should be aware of subprocesses that failed to initialize'''
-        assert False
         nmanager.add_process_group('a', BadActor)
+        time.sleep(1)
+        self.assertRaises(GroupFailed, nmanager.tick)
     def test_proper_transport_cleanup_upon_removegroup(self):
         assert not nmanager.ipc_transport.peers
         nmanager.add_process_group('b')

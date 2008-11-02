@@ -31,7 +31,7 @@ import time
 import process as processing
 
 __all__ = ('Message', 'ActorManager', 'Actor', 'PacketError', 'PacketTypeError', 'GroupAlreadyExists', 'GroupDoesNotExist', 'CreateGroupError',
-           'DefaultActorFailed')
+           'DefaultActorFailed', 'GroupFailed')
 
 class PacketError(Exception):
     pass
@@ -49,6 +49,9 @@ class CreateGroupError(Exception):
     pass
 
 class DefaultActorFailed(Exception):
+    pass
+
+class GroupFailed(Exception):
     pass
     
 def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_addr, _should_quit, packet_types):
@@ -156,8 +159,12 @@ class ActorManager(messaging.MessageManager):
             # if receiverID isn't specified, whoever registers can handle this message
             return True
     def tick(self, evt=None, **kws):
-        '''calls update on all actors before message manager ticks'''
         '''first poll process for packets, then network messages, then actor updates'''
+        # server manager need to monitor sub-groups
+        if self.is_main_process:
+            for group, (p, _id, switch) in self.groups.items():    
+                if not p.isAlive():
+                    raise GroupFailed('Group "%s" failed' % group)
         self.ipc_transport.poll(self.packet_handler)
         self.transport.poll(self.packet_handler)
         processing.get_logger().debug('process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
