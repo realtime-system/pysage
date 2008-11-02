@@ -48,12 +48,16 @@ class IPCTransport(Transport):
     def accept(self):
         c = self._connection.accept()
         _clientid = self._connection.last_accepted
+        if not _clientid:
+            _clientid = c.fileno()
         self.peers[_clientid] = c
         return _clientid
+    def disconnect(self, _id):
+        del self.peers[_id]
     def send(self, data, id=-1, broadcast=False):
         return processing.send_bytes(self.peers[id], data)
     def poll(self, packet_handler):
-        for conn in self.peers.values():
+        for _id, conn in self.peers.items():
             while conn.poll():
                 packet = IPCPacket(processing.recv_bytes(conn))
                 packet_handler(packet)

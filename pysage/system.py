@@ -30,7 +30,8 @@ import util
 import time
 import process as processing
 
-__all__ = ('Message', 'ActorManager', 'Actor', 'PacketError', 'PacketTypeError', 'GroupAlreadyExists', 'GroupDoesNotExist', 'CreateGroupError')
+__all__ = ('Message', 'ActorManager', 'Actor', 'PacketError', 'PacketTypeError', 'GroupAlreadyExists', 'GroupDoesNotExist', 'CreateGroupError',
+           'DefaultActorFailed')
 
 class PacketError(Exception):
     pass
@@ -46,6 +47,9 @@ class GroupDoesNotExist(Exception):
 
 class CreateGroupError(Exception):
     pass
+
+class DefaultActorFailed(Exception):
+    pass
     
 def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_addr, _should_quit, packet_types):
     '''interval is in milliseconds of how long to sleep before another tick'''
@@ -60,8 +64,12 @@ def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_
         manager.packet_types = packet_types
     manager._ipc_connect(server_addr, _should_quit)
     processing.get_logger().info('process "%s" is bound to address: "%s"' % (processing.get_pid(processing.current_process()), manager.ipc_transport._connection.fileno()))
-    if default_actor_class:
-        manager.register_actor(default_actor_class())
+    try:
+        default_actor = default_actor_class()
+    except Exception, e:
+        raise DefaultActorFailed('Default actor class "%s" failed to initialize. ("%s")' % (default_actor_class, e))
+    else:
+        manager.register_actor(default_actor)
     while not manager._should_quit.value:
         start = util.get_time()
         manager.tick(maxTime=max_tick_time)
@@ -231,9 +239,12 @@ class ActorManager(messaging.MessageManager):
         self.groups[g] = (p, _clientid, switch)
     def remove_process_group(self, name):
         '''removes a process group from the pool'''
+        if not self.groups.has_key(name):
+            raise GroupDoesNotExist('Group "%s" does not exist' % name)
         p, _clientid, switch = self.groups[name]
         switch.value = 1
         p.join()
+        self.ipc_transport.disconnect(_clientid)
         del self.groups[name]
         return self
     def clear_process_group(self):

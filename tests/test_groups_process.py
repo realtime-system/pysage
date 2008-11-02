@@ -42,6 +42,11 @@ class PingReceiver(Actor):
         nmanager.queue_message_to_group(nmanager.PYSAGE_MAIN_GROUP, PongMessage(secret=1234))
         return True
     
+class BadActor(Actor):
+    def __init__(self):
+        Actor.__init__(self)
+        raise Exception('I am supposed to fail')
+    
 class PongReceiver(Actor):
     subscriptions = ['PongMessage']
     def __init__(self):
@@ -66,6 +71,7 @@ class TestGroupsProcess(unittest.TestCase):
         nmanager.add_process_group('b')
         assert len(nmanager.groups) == 2
         assert len(active_children()) == 2
+        nmanager.clear_process_group()
         nmanager.clear_process_group()
         assert len(nmanager.groups) == 0
         assert len(active_children()) == 0
@@ -111,7 +117,18 @@ class TestGroupsProcess(unittest.TestCase):
         time.sleep(1)
         nmanager.tick()
         assert nmanager.find('pong_receiver').received_secret == 1234
-
+    def test_fail_default_actor(self):
+        '''the main process should be aware of subprocesses that failed to initialize'''
+        assert False
+        nmanager.add_process_group('a', BadActor)
+    def test_proper_transport_cleanup_upon_removegroup(self):
+        assert not nmanager.ipc_transport.peers
+        nmanager.add_process_group('b')
+        self.assertRaises(GroupDoesNotExist, nmanager.remove_process_group, 'a')
+        nmanager.remove_process_group('b')
+        assert not nmanager.ipc_transport.peers
+    
+        
 
 
 
