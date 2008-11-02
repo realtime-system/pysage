@@ -182,7 +182,7 @@ class ActorManager(messaging.MessageManager):
     def send_message(self, msg, clientid):
         self.transport.send(msg.to_string(), id=self.clients[clientid])
         return self
-    def queue_message_to_group(self, msg, group):
+    def queue_message_to_group(self, group, msg):
         '''message is serialized and sent to the group (process) specified'''
         if not self.groups.has_key(group):
             raise GroupDoesNotExist('Group "%s" does not exist' % group)

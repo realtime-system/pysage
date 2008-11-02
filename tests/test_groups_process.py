@@ -39,7 +39,7 @@ class PingReceiver(Actor):
     subscriptions = ['PingMessage']
     def handle_PingMessage(self, msg):
         nmanager = ActorManager.get_singleton()
-        nmanager.queue_message_to_group(PongMessage(secret=1234), nmanager.PYSAGE_MAIN_GROUP)
+        nmanager.queue_message_to_group(nmanager.PYSAGE_MAIN_GROUP, PongMessage(secret=1234))
         return True
     
 class PongReceiver(Actor):
@@ -86,7 +86,7 @@ class TestGroupsProcess(unittest.TestCase):
         nmanager.register_actor(PongReceiver(), 'pong_receiver')
         assert not nmanager.find('pong_receiver').received_secret
         nmanager.add_process_group('a', PingReceiver)
-        nmanager.queue_message_to_group(PingMessage(secret=1234), 'a')
+        nmanager.queue_message_to_group('a', PingMessage(secret=1234))
         time.sleep(1)
         nmanager.tick()
         assert nmanager.find('pong_receiver').received_secret == 1234
@@ -100,14 +100,14 @@ class TestGroupsProcess(unittest.TestCase):
         self.assertRaises(GroupAlreadyExists, nmanager.add_process_group, 'a', PingReceiver)
         nmanager.add_process_group('b', PingReceiver)
         
-        nmanager.queue_message_to_group(PingMessage(secret=1234), 'a')
+        nmanager.queue_message_to_group('a', PingMessage(secret=1234))
         time.sleep(1)
         nmanager.tick()
 
         assert nmanager.find('pong_receiver').received_secret == 1234
         nmanager.find('pong_receiver').received_secret = None
 
-        nmanager.queue_message_to_group(PingMessage(secret=1234), 'b')
+        nmanager.queue_message_to_group('b', PingMessage(secret=1234))
         time.sleep(1)
         nmanager.tick()
         assert nmanager.find('pong_receiver').received_secret == 1234
