@@ -78,7 +78,8 @@ def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_
         manager.tick(maxTime=max_tick_time)
         # we want to sleep the difference between the time it took to process and the interval desired
         _time_to_sleep = interval - (util.get_time() - start)
-        time.sleep(_time_to_sleep)
+        if _time_to_sleep > 0.0:
+            time.sleep(_time_to_sleep)
     return False
 
 class ActorManager(messaging.MessageManager):

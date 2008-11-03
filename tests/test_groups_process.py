@@ -34,6 +34,18 @@ class PongMessage(Message):
     properties = ['secret']
     types = ['i']
     packet_type = 102
+
+class LongMessage(Message):
+    properties = ['data']
+    types = ['ti']
+    packet_type = 109
+
+class LongMessageActor(Actor):
+    subscriptions = ['LongMessage']
+    def handle_LongMessage(self, msg):
+        nmanager = ActorManager.get_singleton()
+        nmanager.queue_message_to_group(nmanager.PYSAGE_MAIN_GROUP, PongMessage(secret=len(msg.get_property('data'))))
+        return True
     
 class PingReceiver(Actor):
     subscriptions = ['PingMessage']
@@ -128,6 +140,19 @@ class TestGroupsProcess(unittest.TestCase):
         self.assertRaises(GroupDoesNotExist, nmanager.remove_process_group, 'a')
         nmanager.remove_process_group('b')
         assert not nmanager.ipc_transport.peers
+    def test_sending_long_message(self):
+        nmanager.register_actor(PongReceiver(), 'pong_receiver')
+        assert not nmanager.find('pong_receiver').received_secret
+
+        m = LongMessage(data=[1] * 10000)
+        nmanager.add_process_group('a', LongMessageActor)
+        nmanager.queue_message_to_group('a', m)
+
+        time.sleep(1)
+        nmanager.tick()
+
+        assert nmanager.find('pong_receiver').received_secret == 10000
+        
     
         
 
