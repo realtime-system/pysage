@@ -16,6 +16,8 @@ else:
         return conn.recvbytes()
     def get_pid(p):
         return p.getPid()
+    def is_alive(p):
+        return p.isAlive()
     processing.enableLogging(level=logging.INFO)
     get_logger = processing.getLogger
     current_process = processing.currentProcess
@@ -32,6 +34,8 @@ else:
         return conn.recv_bytes()
     def get_pid(p):
         return p.pid
+    def is_alive(p):
+        return p.is_alive()
     get_logger = processing.get_logger
     current_process = processing.current_process
 

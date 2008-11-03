@@ -163,7 +163,7 @@ class ActorManager(messaging.MessageManager):
         # server manager need to monitor sub-groups
         if self.is_main_process:
             for group, (p, _id, switch) in self.groups.items():    
-                if not p.isAlive():
+                if not processing.is_alive(p):
                     raise GroupFailed('Group "%s" failed' % group)
         self.ipc_transport.poll(self.packet_handler)
         self.transport.poll(self.packet_handler)
