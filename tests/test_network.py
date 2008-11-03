@@ -22,7 +22,6 @@ class TestNetwork(unittest.TestCase):
         p = TestMessage1(amount=1)
     def test_packing(self):
         p = TestMessage1(amount=1)
-        print p.to_string()
         assert p.to_string() == 'g\x00\x00\x00\x01'
     def test_manager_gid(self):
         assert nmanager.gid == 0
@@ -31,7 +30,9 @@ class TestNetwork(unittest.TestCase):
         assert r.gid == (nmanager.gid, id(r))
     def test_packing_tuple(self):
         m = TestMessage2(size=(1,1))
-
-
-
+        assert len(m.to_string()) == 9
+        assert m.to_string() == 'j\x00\x00\x00\x01\x00\x00\x00\x01'
+        
+        print TestMessage2().from_string('j\x00\x00\x00\x01\x00\x00\x00\x01').get_property('size')
+        assert TestMessage2().from_string('j\x00\x00\x00\x01\x00\x00\x00\x01').get_property('size') == [1,1]
 

@@ -319,8 +319,13 @@ class Message(messaging.Message):
             value = self.get_property(name)
             # for composite type, pack it looping over each subtype
             if type(_type) == type(()):
-                for j,v in enumerate(getattr(self, 'pack_' + name)(value)):
-                    buf = self.pack_attr(_type[j], buf, v, name)
+                pack_func = getattr(self, 'pack_' + name, None)
+                if pack_func:
+                    for j,v in enumerate(pack_func(value)):
+                        buf = self.pack_attr(_type[j], buf, v, name)
+                else:
+                    for j,v in enumerate(value):
+                        buf = self.pack_attr(_type[j], buf, v, name)
             # for mono types, just pack it
             else:
                 buf = self.pack_attr(_type, buf, value, name)
@@ -341,7 +346,11 @@ class Message(messaging.Message):
                     value, size = self.unpack_attr(subtype, data, pos)
                     values.append(value)
                     pos += size
-                self.set_property(name, getattr(self, 'unpack_' + name)(values))
+                unpack_func = getattr(self, 'unpack_' + name, None)
+                if unpack_func:
+                    self.set_property(name, getattr(self, 'unpack_' + name)(values))
+                else:
+                    self.set_property(name, values)
             # if not composite, just unpack them and set the property
             else:
                 value, size = self.unpack_attr(_type, data, pos)
