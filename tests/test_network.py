@@ -13,6 +13,16 @@ class TestMessage2(Message):
     properties = ['size']
     types = [('i', 'i')]
     packet_type = 106
+
+class LongMessage(Message):
+    properties = ['data']
+    types = ['ti']
+    packet_type = 107
+
+class PascalMessage(Message):
+    properties = ['data']
+    types = ['p']
+    packet_type = 108
     
 class TestReceiver(Actor):
     pass
@@ -35,4 +45,24 @@ class TestNetwork(unittest.TestCase):
         
         print TestMessage2().from_string('j\x00\x00\x00\x01\x00\x00\x00\x01').get_property('size')
         assert TestMessage2().from_string('j\x00\x00\x00\x01\x00\x00\x00\x01').get_property('size') == [1,1]
+    def test_long_list(self):
+        m = LongMessage(data=[1] * 10000)
+        assert len(m.to_string()) == 1 + 4 + 10000 * 4
+        assert len('k' + "\x00\x00'\x10" + '\x00\x00\x00\x01' * 10000) == 1 + 4 + 10000 * 4
+        assert m.to_string() == 'k' + "\x00\x00'\x10" + '\x00\x00\x00\x01' * 10000
+        assert LongMessage().from_string('k' + "\x00\x00'\x10" + '\x00\x00\x00\x01' * 10000).get_property('data') == [1] * 10000
+    def test_long_pascal_string(self):
+        m = PascalMessage(data='a' * 255)
+        assert len(m.to_string()) == 257
+        assert m.to_string() == 'l' + '\xff' + '\x61' * 255
+        assert m.to_string() == 'l' + '\xff' + 'a' * 255
+        m = PascalMessage(data='a' * 256)
+        self.assertRaises(ValueError, m.to_string)
+        
+
+
+
+
+
+
 

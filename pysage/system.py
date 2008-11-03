@@ -366,7 +366,10 @@ class Message(messaging.Message):
         # packed like this:
         # [unsigned char: length of string][string itself]
         if _type == 'p':
-            buf += struct.pack('!B%is' % len(value), len(value), value)
+            length = len(value)
+            if not length <= 255:
+                raise ValueError('pascal string cannot exceed 255 chars. Given %s' % length)
+            buf += struct.pack('!B%is' % length, length, value)
         # tn: variable length list of type 'n'
         # packed like this:
         # [int: items in list][item1][item2][...]
