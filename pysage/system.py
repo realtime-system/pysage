@@ -81,7 +81,7 @@ def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_
         manager.register_actor(default_actor)
     while not manager._should_quit.value:
         start = util.get_time()
-        manager.tick(maxTime=max_tick_time)
+        manager.tick(max_time=max_tick_time)
         # we want to sleep the difference between the time it took to process and the interval desired
         _time_to_sleep = interval - (util.get_time() - start)
         if _time_to_sleep > 0.0:

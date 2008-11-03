@@ -127,17 +127,17 @@ class MessageManager(util.ProcessLocalSingleton):
             return True
     def validate_message(self, msg):
         return msg.validate()
-    def tick(self, maxTime=None):
+    def tick(self, max_time=None):
         '''
         Process queued messages.
         
         :Parameters:
-            - `maxTime`: processing time limit so that the event processing does not take too long. 
+            - `max_time`: processing time limit so that the event processing does not take too long. 
               not all messages are guranteed to be processed with this limiter
 
         :Return:
             - true: if all messages ready for processing were completed
-            - false: otherwise (i.e.: processing took more than maxTime)
+            - false: otherwise (i.e.: processing took more than max_time)
         '''
         # swap queues and clear the active_queue
         self.active_queue, self.processing_queue = self.processing_queue, self.active_queue
@@ -157,7 +157,7 @@ class MessageManager(util.ProcessLocalSingleton):
                 # finish this message if it was handled or had designated receiver
                 if r.handle_message(msg) or msg.receiverID:
                     break
-            if maxTime and time.time() - startTime > maxTime:
+            if max_time and time.time() - startTime > max_time:
                 break
             
         flushed = len(self.processing_queue) == 0
