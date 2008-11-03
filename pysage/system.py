@@ -165,23 +165,39 @@ class ActorManager(messaging.MessageManager):
         else:
             # if receiverID isn't specified, whoever registers can handle this message
             return True
-    def tick(self, evt=None, **kws):
+    def tick(self, max_time=None, *args, **kws):
         '''first poll process for packets, then network messages, then actor updates'''
+        cut_off_time = None
+        if max_time:
+            cut_off_time = util.get_time() + max_time
         # server manager need to monitor sub-groups
         if self.is_main_process:
             for group, (p, _id, switch) in self.groups.items():    
                 if not processing.is_alive(p):
                     raise GroupFailed('Group "%s" failed' % group)
-        self.ipc_transport.poll(self.packet_handler)
-        self.transport.poll(self.packet_handler)
+
+        processed = self.ipc_transport.poll(self.packet_handler)
+        while processed:
+            processed = self.ipc_transport.poll(self.packet_handler)
+            if cut_off_time and util.get_time() > cut_off_time:
+                break
+        
+        processed = self.transport.poll(self.packet_handler)
+        while processed:
+            processed = self.transport.poll(self.packet_handler)
+            if cut_off_time and util.get_time() > cut_off_time:
+                break
         processing.get_logger().debug('process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
         
         # process all messages first
-        ret = messaging.MessageManager.tick(self, **kws)
+        new_max_time = None
+        if cut_off_time:
+            new_max_time = cut_off_time - util.get_time()
+        ret = messaging.MessageManager.tick(self, max_time = new_max_time, **kws)
         # then update all the game actors
         objs = self.objectIDMap.values()
         objs.sort(lambda x,y: y._SYNC_PRIORITY - x._SYNC_PRIORITY)
-        map(lambda x: x.update(evt), objs)
+        map(lambda x: x.update(*args, **kws), objs)
         return ret
     def _ipc_listen(self):
         # starting server mode

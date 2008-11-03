@@ -57,10 +57,13 @@ class IPCTransport(Transport):
     def send(self, data, id=-1, broadcast=False):
         return processing.send_bytes(self.peers[id], data)
     def poll(self, packet_handler):
+        processed = False
         for _id, conn in self.peers.items():
-            while conn.poll():
+            if conn.poll():
                 packet = IPCPacket(processing.recv_bytes(conn))
                 packet_handler(packet)
+                processed = True
+        return processed
 
 class RakNetTransport(Transport):
     def __init__(self):
@@ -86,9 +89,11 @@ class RakNetTransport(Transport):
             address = pyraknet.PlayerAddress()
         self.net.send(data, len(data), pyraknet.PacketPriority.LOW_PRIORITY, pyraknet.PacketReliability.RELIABLE_ORDERED, 0, address, broadcast)
     def poll(self, packet_handler):
+        processed = False
         packet = self.net.receive()
-        while packet:
+        if packet:
             packet_handler(packet)
-            packet = self.net.receive()
+            processed = True
+        return processed
         
         
