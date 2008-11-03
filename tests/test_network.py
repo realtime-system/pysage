@@ -1,5 +1,5 @@
 # test_network.py
-from pysage.system import Message, ActorManager, Actor
+from pysage.system import Message, ActorManager, Actor, WrongMessageTypeSpecified
 import unittest
 
 nmanager = ActorManager.get_singleton()
@@ -23,6 +23,10 @@ class PascalMessage(Message):
     properties = ['data']
     types = ['p']
     packet_type = 108
+
+class BadMessage(Message):
+    properties = ['data']
+    packet_type = 110
     
 class TestReceiver(Actor):
     pass
@@ -58,6 +62,9 @@ class TestNetwork(unittest.TestCase):
         assert m.to_string() == 'l' + '\xff' + 'a' * 255
         m = PascalMessage(data='a' * 256)
         self.assertRaises(ValueError, m.to_string)
+    def test_bad_message(self):
+        m = BadMessage(data=1)
+        self.assertRaises(WrongMessageTypeSpecified, m.to_string)
         
 
 

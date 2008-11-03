@@ -31,7 +31,7 @@ import time
 import process as processing
 
 __all__ = ('Message', 'ActorManager', 'Actor', 'PacketError', 'PacketTypeError', 'GroupAlreadyExists', 'GroupDoesNotExist', 'CreateGroupError',
-           'DefaultActorFailed', 'GroupFailed', 'get_logger')
+           'DefaultActorFailed', 'GroupFailed', 'get_logger', 'WrongMessageTypeSpecified')
 
 class PacketError(Exception):
     pass
@@ -52,6 +52,9 @@ class DefaultActorFailed(Exception):
     pass
 
 class GroupFailed(Exception):
+    pass
+
+class WrongMessageTypeSpecified(Exception):
     pass
 
 def get_logger():
@@ -314,6 +317,8 @@ class Message(messaging.Message):
     packet_type = None
     def to_string(self):
         '''packs message into binary stream'''
+        if not len(self.types) == len(self.properties):
+            raise WrongMessageTypeSpecified('Message "%s" has %s properties, but %s types' % (self, len(self.properties), len(self.types)))
         # first encode the message type identifier
         buf = struct.pack('!B', self.packet_type)
         # iterate thru all attributes
