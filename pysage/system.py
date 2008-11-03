@@ -31,7 +31,7 @@ import time
 import process as processing
 
 __all__ = ('Message', 'ActorManager', 'Actor', 'PacketError', 'PacketTypeError', 'GroupAlreadyExists', 'GroupDoesNotExist', 'CreateGroupError',
-           'DefaultActorFailed', 'GroupFailed')
+           'DefaultActorFailed', 'GroupFailed', 'get_logger')
 
 class PacketError(Exception):
     pass
@@ -53,6 +53,9 @@ class DefaultActorFailed(Exception):
 
 class GroupFailed(Exception):
     pass
+
+def get_logger():
+    return processing.get_logger()
     
 def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_addr, _should_quit, packet_types):
     '''interval is in milliseconds of how long to sleep before another tick'''
