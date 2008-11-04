@@ -176,15 +176,15 @@ class ActorManager(messaging.MessageManager):
                 if not processing.is_alive(p):
                     raise GroupFailed('Group "%s" failed' % group)
 
-        processed = self.ipc_transport.poll(self.packet_handler)
-        while processed:
-            processed = self.ipc_transport.poll(self.packet_handler)
+        has_more = True
+        while has_more:
+            has_more = self.ipc_transport.poll(self.packet_handler)
             if cut_off_time and util.get_time() > cut_off_time:
                 break
         
-        processed = self.transport.poll(self.packet_handler)
-        while processed:
-            processed = self.transport.poll(self.packet_handler)
+        has_more = True
+        while has_more:
+            has_more = self.transport.poll(self.packet_handler)
             if cut_off_time and util.get_time() > cut_off_time:
                 break
         processing.get_logger().debug('process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
