@@ -24,6 +24,11 @@ class PascalMessage(Message):
     types = ['p']
     packet_type = 108
 
+class LongStringMessage(Message):
+    properties = ['data']
+    types = ['S']
+    packet_type = 111
+
 class BadMessage(Message):
     properties = ['data']
     packet_type = 110
@@ -65,11 +70,11 @@ class TestNetwork(unittest.TestCase):
     def test_bad_message(self):
         m = BadMessage(data=1)
         self.assertRaises(WrongMessageTypeSpecified, m.to_string)
+    def test_long_string_message(self):
+        m = LongStringMessage(data='1' * 10000)
+        assert len(m.to_string()) == 1 + 4 + 10000
+        LongStringMessage().from_string(m.to_string()).get_property('data') == '1' * 10000
         
-
-
-
-
 
 
 

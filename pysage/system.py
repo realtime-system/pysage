@@ -402,6 +402,12 @@ class Message(messaging.Message):
             buf += struct.pack('!i', len(value))
             for item in value:
                 buf += struct.pack('!%s' % _type[1], item)
+        # S: long string of length more than 255
+        # packed like:
+        # [int: length of string][string itself]
+        elif _type[0] == 'S':
+            length = len(value)
+            buf += struct.pack('!i%is' % length, length, value)
         # default types
         else:
             try:
@@ -421,16 +427,23 @@ class Message(messaging.Message):
         # handle variable length list type
         elif _type[0] == 't':
             # get the size of the list, first 4 bytes (type "i")
-            items = struct.unpack('!i', data[pos:pos+4])[0]
+            length = struct.unpack('!i', data[pos:pos+4])[0]
             # type of the items on this list is given as the second element in the type tuple
             list_type = '!%s' % _type[1]
             list_type_size = struct.calcsize(list_type)
             # total size is the 4 bytes (length) plus the type size times number of elements
-            size = 4 + items * list_type_size
+            size = 4 + length  * list_type_size
             value = []
-            for a in range(items):
+            for a in range(length):
                 offset = list_type_size*a+pos+4
                 value.append(struct.unpack(list_type, data[offset:offset+list_type_size])[0])
+        # handle long string, this can handle string of size more than 255
+        elif _type[0] == 'S':
+            # get the size of the string, first 4 bytes (type "i")
+            length = struct.unpack('!i', data[pos:pos+4])[0]
+            value = struct.unpack('!%is' % length, data[pos+4:pos+4+length])[0]
+            # the size of this struct is the length of string + 4 bytes of the integer
+            size = length + 4
         # handle built-in struct type
         else:
             size = struct.calcsize(_type)
