@@ -1,4 +1,6 @@
 ==Change Log==
+=== 1.5.0 ===
+  * added process and network support and unit tests
 === 1.2.5 ===
   * Added minimum_sleep to the threaded tick runner.  This helps the OS to give control to better manage control between threads.
   * Removed ez_setup from the directory structure
