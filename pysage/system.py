@@ -411,10 +411,10 @@ class Message(messaging.Message):
             if not length <= 255:
                 raise ValueError('pascal string cannot exceed 255 chars. Given %s' % length)
             buf += struct.pack('!B%is' % length, length, value)
-        # tn: variable length list of type 'n'
+        # an: array of type 'n'
         # packed like this:
         # [int: items in list][item1][item2][...]
-        elif _type[0] == 't':
+        elif _type[0] == 'a':
             buf += struct.pack('!i', len(value))
             for item in value:
                 buf += struct.pack('!%s' % _type[1], item)
@@ -440,11 +440,11 @@ class Message(messaging.Message):
             value = struct.unpack('!%is' % size, data[pos+1:pos+1+size])[0]
             # add one byte to the total size of this attribute
             size += 1
-        # handle variable length list type
-        elif _type[0] == 't':
-            # get the size of the list, first 4 bytes (type "i")
+        # handle array type
+        elif _type[0] == 'a':
+            # get the size of the array, first 4 bytes (type "i")
             length = struct.unpack('!i', data[pos:pos+4])[0]
-            # type of the items on this list is given as the second element in the type tuple
+            # type of the items on this array is given as the second element in the type tuple
             list_type = '!%s' % _type[1]
             list_type_size = struct.calcsize(list_type)
             # total size is the 4 bytes (length) plus the type size times number of elements

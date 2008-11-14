@@ -16,7 +16,7 @@ class TestMessage2(Message):
 
 class LongMessage(Message):
     properties = ['data']
-    types = ['ti']
+    types = ['ai']
     packet_type = 107
 
 class PascalMessage(Message):

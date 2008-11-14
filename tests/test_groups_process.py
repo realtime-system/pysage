@@ -37,7 +37,7 @@ class PongMessage(Message):
 
 class LongMessage(Message):
     properties = ['data']
-    types = ['ti']
+    types = ['ai']
     packet_type = 109
 
 class LongMessageActor(Actor):
