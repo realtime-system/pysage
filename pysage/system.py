@@ -166,7 +166,22 @@ class ActorManager(messaging.MessageManager):
             # if receiverID isn't specified, whoever registers can handle this message
             return True
     def tick(self, max_time=None, *args, **kws):
-        '''first poll process for packets, then network messages, then actor updates'''
+        '''
+        first poll process for packets, then network messages, then actor updates
+
+        note: the max_time takes a "best effort" approach.  It does not gurantee that processing will always
+        finish on time (duration less than max_time specified)
+        However, it does insure that it poll at least one ipc and one network message
+        per iteration, to avoid "starvation"
+
+        :Parameters:
+            - `max_time`: processing time limit in seconds so that the event processing does not take too long. 
+              not all messages are guranteed to be processed with this limiter
+        
+        :Return:
+            - true: if all messages ready for processing were completed
+            - false: otherwise (i.e.: processing took more than max_time)
+        '''
         cut_off_time = None
         if max_time:
             cut_off_time = util.get_time() + max_time
@@ -176,12 +191,14 @@ class ActorManager(messaging.MessageManager):
                 if not processing.is_alive(p):
                     raise GroupFailed('Group "%s" failed' % group)
 
+        # always poll at least one ipc message here
         has_more = True
         while has_more:
             has_more = self.ipc_transport.poll(self.packet_handler)
             if cut_off_time and util.get_time() > cut_off_time:
                 break
         
+        # always poll at least one network message here
         has_more = True
         while has_more:
             has_more = self.transport.poll(self.packet_handler)
@@ -193,11 +210,10 @@ class ActorManager(messaging.MessageManager):
         new_max_time = None
         if cut_off_time:
             new_max_time = cut_off_time - util.get_time()
+        # process these messages given the newly calculated max time
         ret = messaging.MessageManager.tick(self, max_time = new_max_time, **kws)
-        # then update all the game actors
-        objs = self.objectIDMap.values()
-        objs.sort(lambda x,y: y._SYNC_PRIORITY - x._SYNC_PRIORITY)
-        map(lambda x: x.update(*args, **kws), objs)
+        # then update all actors
+        map(lambda x: x.update(*args, **kws), sorted(self.objectIDMap.values(), lambda x,y: y._SYNC_PRIORITY - x._SYNC_PRIORITY))
         return ret
     def _ipc_listen(self):
         # starting server mode
