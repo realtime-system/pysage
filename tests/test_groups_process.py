@@ -1,5 +1,6 @@
 # test_groups_process.py
 from pysage.system import *
+from pysage.process import enable_groups
 import time
 
 processing = None
@@ -70,7 +71,7 @@ class PongReceiver(Actor):
 
 class TestGroupsProcess(unittest.TestCase):
     def setUp(self):
-        pass
+        enable_groups()
     def tearDown(self):
         nmanager.clear_process_group()
         nmanager.reset()
