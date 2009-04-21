@@ -21,6 +21,15 @@ class RealPunk(Actor):
     def handle_TakeDamage(self, msg):
         self.damage += msg.get_property('damageAmount')
         return True
+    
+class DumbPunk(Actor):
+    subscriptions = ['BombMessage']
+    def __init__(self):
+        Actor.__init__(self)
+        self.alive = True
+    def handle_BombMessage(self, msg):
+        self.alive = False
+        return True
 
 class TestGameObject(unittest.TestCase):
     def setUp(self):
@@ -29,6 +38,12 @@ class TestGameObject(unittest.TestCase):
     def tearDown(self):
         mgr.clear_process_group()
         mgr.reset()
+    def test_adhoc_message(self):
+        obj = DumbPunk()
+        assert obj.alive
+        mgr.register_actor(obj)
+        mgr.trigger_to_actor(obj.gid, 'BombMessage')
+        assert not obj.alive
     def test_createGameObject(self):
         obj = Punk()
         mgr.register_receiver(obj)
@@ -36,7 +51,6 @@ class TestGameObject(unittest.TestCase):
         obj = Punk()
         mgr.register_receiver(obj)
         assert obj.gid == (mgr.gid, id(obj))
-        
     def test_registerObj(self):
         obj = RealPunk()        
         mgr.register_actor(obj)

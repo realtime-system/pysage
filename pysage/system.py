@@ -127,6 +127,9 @@ class ActorManager(messaging.MessageManager):
         - `True`: if event was consumed
         - `False`: otherwise
         '''
+        # if we are sending adhoc messages, we'll create a message instance with the adhoc type
+        if type(msg) == type(''):
+            msg = Message(message_type = msg)
         obj = self.objectIDMap[id]
         for recr in self.message_receiver_map[messaging.WildCardMessageType]:
             recr.handle_message(msg)

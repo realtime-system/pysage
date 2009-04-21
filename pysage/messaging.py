@@ -48,18 +48,19 @@ class Message(object):
     '''generic message class'''
     properties= []
     _LOG_LEVEL = 0
-    def __init__(self, sender=None, receiverID=None, **kws):
+    def __init__(self, sender=None, receiverID=None, message_type='', **kws):
         self._properties = dict( (x, None) for x in self.properties )
         for name, value in kws.items():
             self.lazy_set_property(name, value)
         self.sender = sender
         self.gid = messageID.next()
         self.receiverID = receiverID
+        self._message_type = message_type
     def __repr__(self):
         return 'Message %s %s' % (self.message_type, self.gid)
     @property
     def message_type(self):
-        return self.__class__.__name__
+        return self._message_type or self.__class__.__name__
     def get_sender(self):
         return self.sender
     def lazy_set_property(self, name, value):
