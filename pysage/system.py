@@ -57,6 +57,9 @@ class GroupFailed(Exception):
 class WrongMessageTypeSpecified(Exception):
     pass
 
+class ConcreteMessageAlreadyDefined(Exception):
+    pass
+
 def get_logger():
     return processing.get_logger()
     
@@ -103,6 +106,7 @@ class ActorManager(messaging.MessageManager):
             self.transport = transport.Transport()
         self.clients = {}
         self.packet_types = {}
+        self.message_map = {}
         # using either Domain Socket (Unix) or Named Pipe (windows) as means
         # for IPC
         self.groups = {}
@@ -129,6 +133,9 @@ class ActorManager(messaging.MessageManager):
         '''
         # if we are sending adhoc messages, we'll create a message instance with the adhoc type
         if type(msg) == type(''):
+            # adhoc messages are only allowed if a concrete message class is not constructed
+            if self.message_map.has_key(msg):
+                raise ConcreteMessageAlreadyDefined('A concrete message class of the name "%s" is already defined.  Adhoc messages of this type are not allowed.' % msg)
             msg = Message(message_type = msg)
         obj = self.objectIDMap[id]
         for recr in self.message_receiver_map[messaging.WildCardMessageType]:
@@ -269,6 +276,7 @@ class ActorManager(messaging.MessageManager):
         if self.packet_types.has_key(packet_class.packet_type):
             raise PacketTypeError('Packet_type is already registered with packet "%s"' % self.packet_types[packet_class.packet_type])
         self.packet_types[packet_class.packet_type] = packet_class
+        self.message_map[packet_class.__name__] = packet_class
     def add_process_group(self, name, default_actor_class=None, max_tick_time=None, interval=.03):
         '''adds a process group to the pool'''
         if self.is_main_process == None:

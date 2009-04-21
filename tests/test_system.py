@@ -1,6 +1,7 @@
 # test_system.py
 # unit test that excercises the object manager system
 from pysage import Actor, ActorManager, Message
+from pysage.system import ConcreteMessageAlreadyDefined
 import time
 import unittest
 
@@ -44,6 +45,10 @@ class TestGameObject(unittest.TestCase):
         mgr.register_actor(obj)
         mgr.trigger_to_actor(obj.gid, 'BombMessage')
         assert not obj.alive
+    def test_adhoc_message_with_concrete(self):
+        obj = RealPunk()
+        mgr.register_actor(obj)
+        self.assertRaises(ConcreteMessageAlreadyDefined, mgr.trigger_to_actor, obj.gid, 'TakeDamage')
     def test_createGameObject(self):
         obj = Punk()
         mgr.register_receiver(obj)
