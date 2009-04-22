@@ -251,7 +251,7 @@ class ActorManager(messaging.MessageManager):
         if not self.groups.has_key(group):
             raise GroupDoesNotExist('Group "%s" does not exist' % group)
         p, _clientid, switch = self.groups[group]
-        processing.get_logger().info('queuing message "%s" to "%s"' % (msg, self.ipc_transport.peers[_clientid].fileno()))
+        processing.get_logger().info('queuing message "%s" to "%s"' % (msg, _clientid))
         self.ipc_transport.send(msg.to_string(), _clientid)
     def broadcast_message(self, msg):
         self.transport.send(msg.to_string(), broadcast=True)
