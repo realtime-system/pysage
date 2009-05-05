@@ -1,5 +1,8 @@
 # transport.py
 import process as processing
+import socket
+import select
+
 try:
     import pyraknet
 except ImportError:
@@ -12,11 +15,14 @@ class Transport(object):
     def connect(self, host, port):
         '''connects to a server implementing the same interface'''
         pass
-    def listen(self, port, connection_handler):
+    def disconnect(self):
+        '''disconnects all clients and itself'''
+        pass
+    def listen(self, host, port, connection_handler):
         '''listens for connections, and calls connection_handler upon new connections'''
         pass
-    def send(self, data, id=-1, broadcast=False):
-        '''send data to another transport specified by "id"'''
+    def send(self, data, address=None, broadcast=False):
+        '''send data to another transport specified by address'''
         pass
     def poll(self, packet_handler):
         '''polls network data, pass any packet to the packet_handler'''
@@ -29,10 +35,54 @@ class Transport(object):
         '''returns the address this transport is bound to'''
         pass
     
-class IPCPacket(object):
+class RawPacket(object):
     def __init__(self, data):
         self.data = data
 
+class SelectUDPTransport(Transport):
+    def __init__(self):
+        self.socket = None
+        self.peers = {}
+        self._is_connected = False
+    def listen(self, host, port):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.setblocking(False)
+        self.socket.bind((host, port))
+        # listen is not needed for UDP socket since it's a connectionless protocol
+        # self.socket.listen(5)
+    def poll(self, packet_handler):
+        processed = False
+        inputready, outputready, exceptready = select.select([self.socket.fileno()], [], [], 0)
+        for fd in inputready:
+            if fd == self.socket.fileno():
+                # UDP is connectionless, therefore no accept calls
+                data, address = self.socket.recvfrom(65536)
+                if not address in self.peers:
+                    self.peers[address] = None
+                packet = RawPacket(data)
+                packet_handler(packet)
+                processed = True
+        return processed
+    def connect(self, host, port):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.setblocking(False)
+        self.socket.connect((host, port))
+        self._is_connected = True
+    def disconnect(self):
+        self.socket.close()
+    def send(self, data, address=None, broadcast=False):
+        if address:
+            self.socket.sendto(data, address)
+        elif self._is_connected:
+            # if we are the client, just send it to the server
+            self.socket.send(data)
+        elif broadcast:
+            for addr in self.peers.keys():
+                self.socket.sendto(data, addr)
+    @property
+    def address(self):
+        return self.socket.getsockname()
+        
 class IPCTransport(Transport):
     def __init__(self):
         self._connection = None
@@ -57,10 +107,11 @@ class IPCTransport(Transport):
     def send(self, data, id=-1, broadcast=False):
         return processing.send_bytes(self.peers[id], data)
     def poll(self, packet_handler):
+        '''returns True if transport processed any packet at all'''
         processed = False
         for _id, conn in self.peers.items():
             if conn.poll():
-                packet = IPCPacket(processing.recv_bytes(conn))
+                packet = RawPacket(processing.recv_bytes(conn))
                 packet_handler(packet)
                 processed = True
         return processed
@@ -96,4 +147,40 @@ class RakNetTransport(Transport):
             processed = True
         return processed
         
+#class PollUDPTransport(Transport):
+#    def __init__(self):
+#        # polling object to poll for network events
+#        self.p = select.poll()
+#        self.socket = None
+#        self.connections = {}
+#    def listen(self, host, port):
+#        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#        self.socket.setblocking(False)
+#        self.socket.bind((host, port))
+#        # listen is not needed for UDP socket since it's a connectionless protocol
+#        # self.socket.listen(5)
+#        self.p.register(self.socket)
+#    def poll(self, packet_handler):
+#        processed = False
+#        events = self.p.poll(0)
+#        for fd, event in events:
+#            # if server socket has events, it's got a connection
+#            if fd == self.socket.fileno():
+#                conn, addr = self.socket.accept()
+#                conn.setblocking(False)
+#                self.p.register(conn)
+#                self.connections[conn.fileno()] = conn
+#            elif event & select.POLLIN:
+#                conn = self.connections[fd]
+#                packet = RawPacket(conn.recv(64000))
+#                packet_handler(packet)
+#        return processed
+#    def connect(self, host, port):
+#        pass
+#    def send(self):
+#        pass
+#    @property
+#    def address(self):
+#        return self.socket.getsockname()
+
         
