@@ -44,7 +44,7 @@ class SelectUDPTransport(Transport):
         self.socket = None
         self.peers = {}
         self._is_connected = False
-    def listen(self, host, port):
+    def listen(self, host, port, connection_handler=None):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.setblocking(False)
         self.socket.bind((host, port))

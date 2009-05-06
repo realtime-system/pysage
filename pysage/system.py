@@ -100,10 +100,7 @@ class ActorManager(messaging.MessageManager):
         self.objectNameMap = {}
         
         self.gid = 0
-        if transport.RAKNET_AVAILABLE:
-            self.transport = transport.RakNetTransport()
-        else:
-            self.transport = transport.Transport()
+        self.transport = None
         self.clients = {}
         self.packet_types = {}
         self.message_map = {}
@@ -142,16 +139,36 @@ class ActorManager(messaging.MessageManager):
             recr.handle_message(msg)
         return obj.handle_message(msg)
     def queue_message_to_actor(self, id, msg):
+        '''
+        queues message designated for a specific actor
+
+        :Parameters:
+            - `id`: the "id" of the actor
+            - `msg`: the message to be queued
+        '''
         msg.receiverID = id
         self.queue_message(msg)
         return True
     def register_actor(self, obj, name=None):
+        '''
+        register the actor with the actor manager so that the actor can receive messages as well as having "update" called
+        
+        :Parameters:
+            - `obj`: the actor to be registered
+            - `name`: optional.  The name of the actor for which you can refer back to the actor later
+        '''
         messaging.MessageManager.register_receiver(self, obj)
         self.objectIDMap[obj.gid] = obj
         if name:
             self.objectNameMap[name] = obj
         return obj
     def unregister_actor(self, obj):
+        '''
+        unregister the actor from the actor manager.  actor will no longer receive messages or have its "update" method called
+        
+        :Parameters:
+            - `obj`: the actor being unregistered
+        '''
         messaging.MessageManager.unregister_receiver(self, obj)
         del self.objectIDMap[obj.gid]
         
@@ -209,11 +226,13 @@ class ActorManager(messaging.MessageManager):
                 break
         
         # always poll at least one network message here
-        has_more = True
-        while has_more:
-            has_more = self.transport.poll(self.packet_handler)
-            if cut_off_time and util.get_time() > cut_off_time:
-                break
+        if self.transport:
+            has_more = True
+            while has_more:
+                has_more = self.transport.poll(self.packet_handler)
+                if cut_off_time and util.get_time() > cut_off_time:
+                    break
+
         processing.get_logger().debug('process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
         
         # process all messages first
@@ -235,15 +254,39 @@ class ActorManager(messaging.MessageManager):
         self.ipc_transport.connect(server_addr)
         self._should_quit = _should_quit
         self.groups[self.PYSAGE_MAIN_GROUP] = (None,server_addr,None)
-    def listen(self, port):
+    def listen(self, host, port, transport_class=transport.SelectUDPTransport):
+        '''
+        starts listening for network messages given the port and the transport class
+
+        :Parameters:
+            - `host`: the host for which the server will bind to
+            - `port`: the port for which the server will listen on
+            ` `transport_class`: optional.  the transport class that will be used to define the protocol
+        '''
         def connection_handler(client_address):
             processing.get_logger().debug('connected to client: %s' % client_address)
-        self.transport.listen(port, connection_handler)
+        self.transport = transport_class()
+        self.transport.listen(host, port, connection_handler)
         return self
-    def connect(self, host, port):
+    def connect(self, host, port, transport_class=transport.SelectUDPTransport):
+        '''
+        connects to a server so that message communication can be started
+
+        :Parameters:
+            - `host`: the host for which to connect to
+            - `port`: the port for which to connect to
+        '''
+        self.transport = transport_class()
         self.transport.connect(host, port)
         return self
     def send_message(self, msg, clientid):
+        '''
+        send a message to a network
+        
+        :Parameters:
+            - `msg`: the message to send
+            - `clientid`: the network for which to send the message to
+        '''
         self.transport.send(msg.to_string(), id=self.clients[clientid])
         return self
     def queue_message_to_group(self, group, msg):

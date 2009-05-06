@@ -1,5 +1,6 @@
 # test_network.py
 from pysage.system import Message, ActorManager, Actor, WrongMessageTypeSpecified
+import time
 import unittest
 
 nmanager = ActorManager.get_singleton()
@@ -35,6 +36,41 @@ class BadMessage(Message):
     
 class TestReceiver(Actor):
     pass
+
+class PingMessage(Message):
+    properties = ['secret']
+    types = ['i']
+    packet_type = 112
+
+class TestMeMessage(Message):
+    properties = ['port']
+    types = ['i']
+    packet_type = 114
+
+class PongMessage(Message):
+    properties = ['secret']
+    types = ['i']
+    packet_type = 113
+
+class PingReceiver(Actor):
+    '''this is the actor that will be spawned in the new process'''
+    subscriptions = ['PingMessage', 'TestMeMessage']
+    def handle_PingMessage(self, msg):
+        nmanager = ActorManager.get_singleton()
+        nmanager.queue_message_to_group(nmanager.PYSAGE_MAIN_GROUP, PongMessage(secret=1234))
+        return True
+    def handle_TestMeMessage(self, msg):
+        nmanager = ActorManager.get_singleton()
+        nmanager.connect('localhost', msg.get_property('port'))
+
+class PongReceiver(Actor):
+    subscriptions = ['PongMessage']
+    def __init__(self):
+        Actor.__init__(self)
+        self.received_secret = None
+    def handle_PongMessage(self, msg):
+        self.received_secret = msg.get_property('secret')
+        return True
 
 class TestNetwork(unittest.TestCase):
     def test_packet_creation(self):
@@ -74,7 +110,21 @@ class TestNetwork(unittest.TestCase):
         m = LongStringMessage(data='1' * 10000)
         assert len(m.to_string()) == 1 + 4 + 10000
         LongStringMessage().from_string(m.to_string()).get_property('data') == '1' * 10000
-        
+    def test_send_network_message(self):
+        nmanager.register_actor(PongReceiver(), 'pong_receiver')
+        assert not nmanager.find('pong_receiver').received_secret
+        nmanager.add_process_group('a', PingReceiver)
+        nmanager.queue_message_to_group('a', PingMessage(secret=1234))
+        time.sleep(1)
+        nmanager.tick()
+        assert nmanager.find('pong_receiver').received_secret == 1234
 
+        # the server listens on an auto-gened port on localhost
+        nmanager.listen('localhost', 0)
+
+        host, port = nmanager.transport.address
+
+        # the server tells the slave via IPC to test send a message
+        nmanager.queue_message_to_group('a', TestMeMessage(port=port))
 
 
