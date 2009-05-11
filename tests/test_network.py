@@ -46,6 +46,14 @@ class TestMeMessage(Message):
     properties = ['port']
     types = ['i']
     packet_type = 114
+    
+class SYNMessage(Message):
+    properties = ['port']
+    types = ['i']
+    packet_type= 115
+    
+class ACKMessage(Message):
+    packet_type= 116
 
 class PongMessage(Message):
     properties = ['secret']
@@ -55,6 +63,9 @@ class PongMessage(Message):
 class PingReceiver(Actor):
     '''this is the actor that will be spawned in the new process'''
     subscriptions = ['PingMessage', 'TestMeMessage']
+    def __init__(self):
+        Actor.__init__(self)
+        self.success = False
     def handle_PingMessage(self, msg):
         nmanager = ActorManager.get_singleton()
         nmanager.queue_message_to_group(nmanager.PYSAGE_MAIN_GROUP, PongMessage(secret=1234))
@@ -62,14 +73,23 @@ class PingReceiver(Actor):
     def handle_TestMeMessage(self, msg):
         nmanager = ActorManager.get_singleton()
         nmanager.connect('localhost', msg.get_property('port'))
+        nmanager.send_message(SYNMessage(port=nmanager.transport.address[1]), address=('localhost', msg.get_property('port')))
+        return True
+    def handle_ACKMessage(self, msg):
+        self.success = True
 
 class PongReceiver(Actor):
-    subscriptions = ['PongMessage']
+    subscriptions = ['PongMessage', 'SYNMessage']
     def __init__(self):
         Actor.__init__(self)
         self.received_secret = None
+        self.success = False
     def handle_PongMessage(self, msg):
         self.received_secret = msg.get_property('secret')
+        return True
+    def handle_SYNMessage(self, msg):
+        '''this method tests that server is able to receive messages from clients'''
+        self.success = True
         return True
 
 class TestNetwork(unittest.TestCase):
@@ -126,5 +146,10 @@ class TestNetwork(unittest.TestCase):
 
         # the server tells the slave via IPC to test send a message
         nmanager.queue_message_to_group('a', TestMeMessage(port=port))
+        
+        time.sleep(1)
+        nmanager.tick()
+        
+        assert nmanager.find('pong_receiver').success == True
 
 

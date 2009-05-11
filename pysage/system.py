@@ -101,7 +101,6 @@ class ActorManager(messaging.MessageManager):
         
         self.gid = 0
         self.transport = None
-        self.clients = {}
         self.packet_types = {}
         self.message_map = {}
         # using either Domain Socket (Unix) or Named Pipe (windows) as means
@@ -279,7 +278,7 @@ class ActorManager(messaging.MessageManager):
         self.transport = transport_class()
         self.transport.connect(host, port)
         return self
-    def send_message(self, msg, clientid):
+    def send_message(self, msg, address):
         '''
         send a message to a network
         
@@ -287,7 +286,7 @@ class ActorManager(messaging.MessageManager):
             - `msg`: the message to send
             - `clientid`: the network for which to send the message to
         '''
-        self.transport.send(msg.to_string(), id=self.clients[clientid])
+        self.transport.send(msg.to_string(), address=address)
         return self
     def queue_message_to_group(self, group, msg):
         '''message is serialized and sent to the group (process) specified'''
@@ -369,7 +368,6 @@ class ActorManager(messaging.MessageManager):
             self.transport = transport.RakNetTransport()
         else:
             self.transport = transport.Transport()
-        self.clients = {}
         # not removing the auto-registered packet types
         # self.packet_types = {}
         self.groups = {}
