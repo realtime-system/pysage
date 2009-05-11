@@ -52,8 +52,13 @@ class SYNMessage(Message):
     types = ['i']
     packet_type= 115
     
-class ACKMessage(Message):
+class SYNACKMessage(Message):
+    properties = ['port']
+    types = ['i']
     packet_type= 116
+    
+class ACKMessage(Message):
+    packet_type = 117
 
 class PongMessage(Message):
     properties = ['secret']
@@ -62,10 +67,7 @@ class PongMessage(Message):
 
 class PingReceiver(Actor):
     '''this is the actor that will be spawned in the new process'''
-    subscriptions = ['PingMessage', 'TestMeMessage']
-    def __init__(self):
-        Actor.__init__(self)
-        self.success = False
+    subscriptions = ['PingMessage', 'TestMeMessage', 'SYNACKMessage']
     def handle_PingMessage(self, msg):
         nmanager = ActorManager.get_singleton()
         nmanager.queue_message_to_group(nmanager.PYSAGE_MAIN_GROUP, PongMessage(secret=1234))
@@ -75,22 +77,26 @@ class PingReceiver(Actor):
         nmanager.connect('localhost', msg.get_property('port'))
         nmanager.send_message(SYNMessage(port=nmanager.transport.address[1]), address=('localhost', msg.get_property('port')))
         return True
-    def handle_ACKMessage(self, msg):
-        self.success = True
+    def handle_SYNACKMessage(self, msg):
+        nmanager.send_message(ACKMessage(), address=('localhost', msg.get_property('port')))
 
 class PongReceiver(Actor):
-    subscriptions = ['PongMessage', 'SYNMessage']
+    subscriptions = ['PongMessage', 'SYNMessage', 'ACKMessage']
     def __init__(self):
         Actor.__init__(self)
         self.received_secret = None
-        self.success = False
+        self.syn_success = False
+        self.ack_success = False
     def handle_PongMessage(self, msg):
         self.received_secret = msg.get_property('secret')
         return True
     def handle_SYNMessage(self, msg):
         '''this method tests that server is able to receive messages from clients'''
-        self.success = True
+        self.syn_success = True
         return True
+    def handle_ACKMessage(self, msg):
+        '''handles when client responds with an "ack" message'''
+        self.ack_success = True
 
 class TestNetwork(unittest.TestCase):
     def test_packet_creation(self):
@@ -132,6 +138,10 @@ class TestNetwork(unittest.TestCase):
         LongStringMessage().from_string(m.to_string()).get_property('data') == '1' * 10000
     def test_send_network_message(self):
         nmanager.register_actor(PongReceiver(), 'pong_receiver')
+        
+        assert nmanager.find('pong_receiver').syn_success == False
+        assert nmanager.find('pong_receiver').ack_success == False
+        
         assert not nmanager.find('pong_receiver').received_secret
         nmanager.add_process_group('a', PingReceiver)
         nmanager.queue_message_to_group('a', PingMessage(secret=1234))
@@ -150,6 +160,18 @@ class TestNetwork(unittest.TestCase):
         time.sleep(1)
         nmanager.tick()
         
-        assert nmanager.find('pong_receiver').success == True
+        # confirms that the server can receive messages via nettwork
+        assert nmanager.find('pong_receiver').syn_success == True
+        assert nmanager.find('pong_receiver').ack_success == False
+        
+        # server sends syn-ack
+        nmanager.broadcast_message(SYNACKMessage(port=port))
+        
+        time.sleep(1)
+        nmanager.tick()
+        
+        # confirms that the client received the syn-ack message by verifying that the server received "ack"
+        assert nmanager.find('pong_receiver').syn_success == True
+        assert nmanager.find('pong_receiver').ack_success == True
 
 
