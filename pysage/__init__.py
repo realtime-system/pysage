@@ -1,4 +1,4 @@
 from messaging import WildCardMessageType
 from system import *
 
-__VERSION__ = '1.5.0'
+__VERSION__ = '1.5.2'
