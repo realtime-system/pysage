@@ -6,8 +6,8 @@ import time
 class handler(object):
     def __init__(self):
         self.received = ''
-    def handle(self, packet):
-        self.received += packet.data
+    def handle(self, packet, address):
+        self.received += packet
         return True
 
 class TestTransportModule(unittest.TestCase):

@@ -298,14 +298,15 @@ class ActorManager(messaging.MessageManager):
     def broadcast_message(self, msg):
         self.transport.send(msg.to_string(), broadcast=True)
         return self
-    def packet_handler(self, packet):
-        packetid = ord(packet.data[0])
+    def packet_handler(self, packet, address):
+        packetid = ord(packet[0])
         processing.get_logger().debug('Received packet of type "%s"' % type)
         if packetid < 100:
             processing.get_logger().warning('internal packet unhandled: "%s"' % self.transport.packet_type_info(packetid))
             return self
-        p = self.packet_types[packetid]().from_string(packet.data)
-        self.queue_message(self.packet_types[packetid]().from_string(packet.data)) 
+        p = self.packet_types[packetid]().from_string(packet)
+        p.sender = address
+        self.queue_message(p)
         return self
     def register_packet_type(self, packet_class):
         # skip the base packet class

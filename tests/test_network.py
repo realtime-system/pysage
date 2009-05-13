@@ -87,16 +87,19 @@ class PongReceiver(Actor):
         self.received_secret = None
         self.syn_success = False
         self.ack_success = False
+        self.sender = None
     def handle_PongMessage(self, msg):
         self.received_secret = msg.get_property('secret')
         return True
     def handle_SYNMessage(self, msg):
         '''this method tests that server is able to receive messages from clients'''
         self.syn_success = True
+        self.sender = msg.sender
         return True
     def handle_ACKMessage(self, msg):
         '''handles when client responds with an "ack" message'''
         self.ack_success = True
+        self.sender = msg.sender
 
 class TestNetwork(unittest.TestCase):
     def test_packet_creation(self):
@@ -165,7 +168,8 @@ class TestNetwork(unittest.TestCase):
         assert nmanager.find('pong_receiver').ack_success == False
         
         # server sends syn-ack
-        nmanager.broadcast_message(SYNACKMessage(port=port))
+        print 'message sender: ', nmanager.find('pong_receiver').sender
+        nmanager.send_message(SYNACKMessage(port=port), nmanager.find('pong_receiver').sender)
         
         time.sleep(1)
         nmanager.tick()
@@ -174,4 +178,45 @@ class TestNetwork(unittest.TestCase):
         assert nmanager.find('pong_receiver').syn_success == True
         assert nmanager.find('pong_receiver').ack_success == True
 
+    def test_send_network_message_broadcast(self):
+        nmanager.register_actor(PongReceiver(), 'pong_receiver')
+        
+        assert nmanager.find('pong_receiver').syn_success == False
+        assert nmanager.find('pong_receiver').ack_success == False
+        
+        assert not nmanager.find('pong_receiver').received_secret
+        nmanager.add_process_group('a', PingReceiver)
+        nmanager.queue_message_to_group('a', PingMessage(secret=1234))
+        time.sleep(1)
+        nmanager.tick()
+        assert nmanager.find('pong_receiver').received_secret == 1234
+
+        # the server listens on an auto-gened port on localhost
+        nmanager.listen('localhost', 0)
+
+        host, port = nmanager.transport.address
+
+        # the server tells the slave via IPC to test send a message
+        nmanager.queue_message_to_group('a', TestMeMessage(port=port))
+        
+        time.sleep(1)
+        nmanager.tick()
+        
+        # confirms that the server can receive messages via nettwork
+        assert nmanager.find('pong_receiver').syn_success == True
+        assert nmanager.find('pong_receiver').ack_success == False
+        
+        # server sends syn-ack
+        nmanager.broadcast_message(SYNACKMessage(port=port))
+        
+        time.sleep(1)
+        nmanager.tick()
+        
+        # confirms that the client received the syn-ack message by verifying that the server received "ack"
+        assert nmanager.find('pong_receiver').syn_success == True
+        assert nmanager.find('pong_receiver').ack_success == True
+    def tearDown(self):
+        nmanager.clear_process_group()
+        nmanager.reset()
+        
 

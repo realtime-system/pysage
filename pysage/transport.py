@@ -56,11 +56,10 @@ class SelectUDPTransport(Transport):
         for fd in inputready:
             if fd == self.socket.fileno():
                 # UDP is connectionless, therefore no accept calls
-                data, address = self.socket.recvfrom(65536)
+                packet, address = self.socket.recvfrom(65536)
                 if not address in self.peers:
                     self.peers[address] = None
-                packet = RawPacket(data)
-                packet_handler(packet)
+                packet_handler(packet, address)
                 processed = True
         return processed
     def connect(self, host, port):
@@ -109,10 +108,10 @@ class IPCTransport(Transport):
     def poll(self, packet_handler):
         '''returns True if transport processed any packet at all'''
         processed = False
-        for _id, conn in self.peers.items():
+        for address, conn in self.peers.items():
             if conn.poll():
-                packet = RawPacket(processing.recv_bytes(conn))
-                packet_handler(packet)
+                packet = processing.recv_bytes(conn)
+                packet_handler(packet, address)
                 processed = True
         return processed
 
