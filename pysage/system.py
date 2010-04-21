@@ -410,7 +410,7 @@ class Message(messaging.Message):
         for i,_type in enumerate(self.types):
             # get name and value of the attribute
             name = self.properties[i]
-            value = self.get_property(name)
+            value = self._properties[name]
             # for composite type, pack it looping over each subtype
             if type(_type) == type(()):
                 pack_func = getattr(self, 'pack_' + name, None)
