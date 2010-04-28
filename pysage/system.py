@@ -403,7 +403,7 @@ class Message(messaging.Message):
     def to_string(self):
         '''packs message into binary stream'''
         if not len(self.types) == len(self.properties):
-            raise WrongMessageTypeSpecified('Message "%s" has %s properties, but %s types' % (self, len(self.properties), len(self.types)))
+            raise WrongMessageTypeSpecified('Message "%s" has %s properties, but %s types specified.  Check the "types" and "properties" class attribute of the "%s" class' % (self, len(self.properties), len(self.types), self))
         # first encode the message type identifier
         buf = struct.pack('!B', self.packet_type)
         # iterate thru all attributes
