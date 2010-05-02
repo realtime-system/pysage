@@ -66,13 +66,17 @@ def get_logger():
 def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_addr, _should_quit, packet_types):
     '''interval is in milliseconds of how long to sleep before another tick'''
     # creating a client mode manager
+    # after forking, we would already have an instance tied to the parent PID, simply change that to our PID
+    ActorManager._switch_instance_after_fork()
     manager = ActorManager.get_singleton()
+    manager.reset_to_client_mode()
+    # under non-forking systems, this would simply create a new manager
     # the new manager may not have all packet types registered, register them here
+    # on windows, packet types will be auto-registered
+    # on *nix, we would have whatever packets that were registered by the parent process
     if manager.packet_types:
-        # on windows, packet types will be auto-registered
         assert set(manager.packet_types) == set(packet_types)
     else:
-        # on *nix, forking would cause packets NOT be auto-registered
         manager.packet_types = packet_types
     manager._ipc_connect(server_addr, _should_quit)
     processing.get_logger().info('process "%s" is bound to address: "%s"' % (processing.get_pid(processing.current_process()), manager.ipc_transport._connection.fileno()))
@@ -357,6 +361,9 @@ class ActorManager(messaging.MessageManager):
     @property
     def queue_length(self):
         return len(self.active_queue)
+    def reset_to_client_mode(self):
+        '''after forking in *nix systems, we need to clean up the current manager'''
+        self.is_main_process == None
     def reset(self):
         '''mainly used for testing'''
         messaging.MessageManager.reset(self)

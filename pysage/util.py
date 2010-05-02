@@ -35,6 +35,12 @@ class ProcessLocalSingleton(object):
     @classmethod
     def _clear_singleton(cls):
         cls.__it__ = None
+    @classmethod
+    def _switch_instance_after_fork(cls):
+        '''after forking, parent's isntance still remains, need to adjust the pid so no extra instance is created'''
+        it = cls.__dict__.get("__it__")
+        if it is not None:
+            cls.__it__ = (os.getpid(), it[1])
     
 if sys.platform.startswith("win"):
     get_time = time.clock
