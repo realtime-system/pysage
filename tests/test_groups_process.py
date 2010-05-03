@@ -123,7 +123,7 @@ class TestGroupsProcess(unittest.TestCase):
         time.sleep(1)
         nmanager.tick()
 
-        assert nmanager.find('pong_receiver').received_secret == 1234
+        self.assertEqual(nmanager.find('pong_receiver').received_secret, 1234)
         nmanager.find('pong_receiver').received_secret = None
 
         nmanager.queue_message_to_group('b', PingMessage(secret=1234))

@@ -36,6 +36,7 @@ class TestGameObject(unittest.TestCase):
     def setUp(self):
         mgr.clear_process_group()
         mgr.reset()
+        mgr.enable_groups()
     def tearDown(self):
         mgr.clear_process_group()
         mgr.reset()

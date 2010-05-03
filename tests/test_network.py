@@ -4,6 +4,7 @@ import time
 import unittest
 
 nmanager = ActorManager.get_singleton()
+nmanager.enable_groups()
 
 class TestMessage1(Message):
     properties = ['amount']

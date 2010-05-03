@@ -33,6 +33,8 @@ import process as processing
 __all__ = ('Message', 'ActorManager', 'Actor', 'PacketError', 'PacketTypeError', 'GroupAlreadyExists', 'GroupDoesNotExist', 'CreateGroupError',
            'DefaultActorFailed', 'GroupFailed', 'get_logger', 'WrongMessageTypeSpecified')
 
+GROUP_WARNING_MESSAGE = '''Please call mgr.enable_groups() first before using "groups" mode.  This ensures that your app is safe when "frozen" into an executable in Windows.  Also ensure any "add_process_group" calls happen under the main function (i.e.: if __name__ == '__main__' ...).  This is required under Windows.  See "Grouping" documentation.'''
+
 class PacketError(Exception):
     pass
 
@@ -58,6 +60,9 @@ class WrongMessageTypeSpecified(Exception):
     pass
 
 class ConcreteMessageAlreadyDefined(Exception):
+    pass
+
+class GroupsNotEnabled(Exception):
     pass
 
 def get_logger():
@@ -111,6 +116,7 @@ class ActorManager(messaging.MessageManager):
         # for IPC
         self.groups = {}
         self.is_main_process = None
+        self._groups_enabled = False
         self.ipc_transport = transport.IPCTransport()
     def find(self, name):
         '''returns an actor by its name, None if not found'''
@@ -324,8 +330,16 @@ class ActorManager(messaging.MessageManager):
             raise PacketTypeError('Packet_type is already registered with packet "%s"' % self.packet_types[packet_class.packet_type])
         self.packet_types[packet_class.packet_type] = packet_class
         self.message_map[packet_class.__name__] = packet_class
+    def validate_groups_mode(self):
+        if not self._groups_enabled:
+            raise GroupsNotEnabled(GROUP_WARNING_MESSAGE)
+    def enable_groups(self):
+        '''enable freeze support'''
+        processing.enable_groups()
+        self._groups_enabled = True
     def add_process_group(self, name, default_actor_class=None, max_tick_time=None, interval=.03):
         '''adds a process group to the pool'''
+        self.validate_groups_mode()
         if self.is_main_process == None:
             self._ipc_listen()
         # make sure we have a str
