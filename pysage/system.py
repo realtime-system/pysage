@@ -29,6 +29,7 @@ import transport
 import util
 import time
 import process as processing
+import logging
 
 __all__ = ('Message', 'ActorManager', 'Actor', 'PacketError', 'PacketTypeError', 'GroupAlreadyExists', 'GroupDoesNotExist', 'CreateGroupError',
            'DefaultActorFailed', 'GroupFailed', 'get_logger', 'WrongMessageTypeSpecified')
@@ -84,13 +85,15 @@ def _subprocess_main(name, default_actor_class, max_tick_time, interval, server_
     else:
         manager.packet_types = packet_types
     manager._ipc_connect(server_addr, _should_quit)
-    processing.get_logger().info('process "%s" is bound to address: "%s"' % (processing.get_pid(processing.current_process()), manager.ipc_transport._connection.fileno()))
+    manager.log(logging.INFO, 'current process "%s" is bound to address: "%s"' % (processing.get_pid(processing.current_process()), manager.ipc_transport._connection.fileno()))
     try:
         default_actor = default_actor_class()
     except Exception, e:
         raise DefaultActorFailed('Default actor class "%s" failed to initialize. ("%s")' % (default_actor_class, e))
     else:
         manager.register_actor(default_actor)
+    # manager is now seen as a child
+    assert not manager.is_main_process
     while not manager._should_quit.value:
         start = util.get_time()
         manager.tick(max_time=max_tick_time)
@@ -115,7 +118,7 @@ class ActorManager(messaging.MessageManager):
         # using either Domain Socket (Unix) or Named Pipe (windows) as means
         # for IPC
         self.groups = {}
-        self.is_main_process = None
+        self.is_main_process = True
         self._groups_enabled = False
         self.ipc_transport = transport.IPCTransport()
     def find(self, name):
@@ -242,7 +245,7 @@ class ActorManager(messaging.MessageManager):
                 if cut_off_time and util.get_time() > cut_off_time:
                     break
 
-        processing.get_logger().debug('process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
+        self.log(logging.DEBUG, 'process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
         
         # process all messages first
         new_max_time = None
@@ -253,13 +256,14 @@ class ActorManager(messaging.MessageManager):
         # then update all actors
         map(lambda x: x.update(*args, **kws), sorted(self.objectIDMap.values(), lambda x,y: y._SYNC_PRIORITY - x._SYNC_PRIORITY))
         return ret
+    def log(self, level, msg):
+        '''process aware logging'''
+        return processing.get_logger().log(level, msg)
     def _ipc_listen(self):
         # starting server mode
-        self.is_main_process = True
         self.ipc_transport.listen()
     def _ipc_connect(self, server_addr, _should_quit):
         # starting client mode
-        self.is_main_process = False
         self.ipc_transport.connect(server_addr)
         self._should_quit = _should_quit
         self.groups[self.PYSAGE_MAIN_GROUP] = (None,server_addr,None)
@@ -273,7 +277,7 @@ class ActorManager(messaging.MessageManager):
             ` `transport_class`: optional.  the transport class that will be used to define the protocol
         '''
         def connection_handler(client_address):
-            processing.get_logger().debug('connected to client: %s' % client_address)
+            self.log(logging.DEBUG, 'connected to client: %s' % client_address)
         self.transport = transport_class()
         self.transport.listen(host, port, connection_handler)
         return self
@@ -303,7 +307,7 @@ class ActorManager(messaging.MessageManager):
         if not self.groups.has_key(group):
             raise GroupDoesNotExist('Group "%s" does not exist' % group)
         p, _clientid, switch = self.groups[group]
-        processing.get_logger().info('queuing message "%s" to "%s"' % (msg, _clientid))
+        self.log(logging.INFO, 'queuing message "%s" to "%s"' % (msg, _clientid))
         self.ipc_transport.send(msg.to_string(), _clientid)
     def broadcast_message(self, msg):
         self.transport.send(msg.to_string(), broadcast=True)
@@ -339,9 +343,9 @@ class ActorManager(messaging.MessageManager):
         self._groups_enabled = True
     def add_process_group(self, name, default_actor_class=None, max_tick_time=None, interval=.03):
         '''adds a process group to the pool'''
+        assert self.is_main_process, 'Pysage currently only supports spawning child groups from the Main Group'
         self.validate_groups_mode()
-        if self.is_main_process == None:
-            self._ipc_listen()
+        self._ipc_listen()
         # make sure we have a str
         g = str(name)
         if self.groups.has_key(g):
@@ -377,7 +381,13 @@ class ActorManager(messaging.MessageManager):
         return len(self.active_queue)
     def reset_to_client_mode(self):
         '''after forking in *nix systems, we need to clean up the current manager'''
-        self.is_main_process == None
+        super(ActorManager, self).reset_to_client_mode()
+        self.is_main_process = False
+        self.groups = {}
+        self.ipc_transport = transport.IPCTransport()
+        self.objectIDMap = {}
+        self.objectNameMap = {}
+        self.transport = None
     def reset(self):
         '''mainly used for testing'''
         messaging.MessageManager.reset(self)
@@ -393,7 +403,6 @@ class ActorManager(messaging.MessageManager):
         # not removing the auto-registered packet types
         # self.packet_types = {}
         self.groups = {}
-        self.is_main_process = None
         self.ipc_transport = transport.IPCTransport()
                 
 class Actor(messaging.MessageReceiver):

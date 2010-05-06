@@ -286,4 +286,8 @@ class MessageManager(util.ProcessLocalSingleton):
         self.message_receiver_map = {WildCardMessageType: []}
         self.active_queue = collections.deque()
         self.processing_queue = collections.deque()
+    def reset_to_client_mode(self):
+        self.active_queue = collections.deque()
+        self.processing_queue = collections.deque()
+        self.message_receiver_map = dict( (x,[]) for x in self.message_receiver_map.keys() )
           
