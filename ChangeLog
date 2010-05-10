@@ -1,4 +1,10 @@
 ==Change Log==
+=== 1.5.4 == 
+  * adding a group in forking systems now properly cleans up manager in child processes
+  * correct code to ensure process singleton manager
+  * resent UDP packet if fails
+  * added eanble_groups support to prevent failure when frozen
+  * added exception handling when using groups without being enabled
 === 1.5.0 ===
   * added process and network support and unit tests
 === 1.2.5 ===
