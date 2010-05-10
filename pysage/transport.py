@@ -71,13 +71,19 @@ class SelectUDPTransport(Transport):
         self.socket.close()
     def send(self, data, address=None, broadcast=False):
         if address:
-            self.socket.sendto(data, address)
+            sent = 0
+            while sent != len(data):
+                sent = self.socket.sendto(data, address)
         elif self._is_connected:
             # if we are the client, just send it to the server
-            self.socket.send(data)
+            sent = 0
+            while sent != len(data):
+                sent = self.socket.send(data)
         elif broadcast:
             for addr in self.peers.keys():
-                self.socket.sendto(data, addr)
+                sent = 0
+                while sent != len(data):
+                    sent = self.socket.sendto(data, addr)
     @property
     def address(self):
         return self.socket.getsockname()
