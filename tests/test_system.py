@@ -1,7 +1,7 @@
 # test_system.py
 # unit test that excercises the object manager system
 from pysage import Actor, ActorManager, Message
-from pysage.system import ConcreteMessageAlreadyDefined
+from pysage.system import ConcreteMessageAlreadyDefined, PacketTypeError
 import time
 import unittest
 
@@ -40,6 +40,18 @@ class TestGameObject(unittest.TestCase):
     def tearDown(self):
         mgr.clear_process_group()
         mgr.reset()
+    def test_packet_type_error_dup_type(self):
+        def register_error_type():
+            class TakeDamageFake(Message):
+                properties = ['stuff']
+                packet_type = 104
+        self.assertRaises(PacketTypeError, register_error_type)
+    def test_packet_type_error_same_twice(self):
+        def register_error_type():
+            class TakeDamage(Message):
+                properties = ['stuff']
+                packet_type = 104
+        register_error_type()
     def test_adhoc_message(self):
         obj = DumbPunk()
         assert obj.alive

@@ -30,6 +30,7 @@ import util
 import time
 import process as processing
 import logging
+import warnings
 
 __all__ = ('Message', 'ActorManager', 'Actor', 'PacketError', 'PacketTypeError', 'GroupAlreadyExists', 'GroupDoesNotExist', 'CreateGroupError',
            'DefaultActorFailed', 'GroupFailed', 'get_logger', 'WrongMessageTypeSpecified')
@@ -331,7 +332,11 @@ class ActorManager(messaging.MessageManager):
         if packet_class.packet_type <= 100:
             raise PacketTypeError('Packet_type must be greater than 100.  Had "%s"' % packet_class.packet_type)
         if self.packet_types.has_key(packet_class.packet_type):
-            raise PacketTypeError('Packet_type is already registered with packet "%s"' % self.packet_types[packet_class.packet_type])
+            if packet_class.__name__ == self.packet_types[packet_class.packet_type].__name__:
+                warnings.warn('Attempted to register same message class %s.  Skipped.' % packet_class, stacklevel=3)
+                return
+            else:
+                raise PacketTypeError('Trying to register %s.  But packet_type %s is already registered with packet "%s"' % (packet_class, packet_class.packet_type, self.packet_types[packet_class.packet_type]))
         self.packet_types[packet_class.packet_type] = packet_class
         self.message_map[packet_class.__name__] = packet_class
     def validate_groups_mode(self):
