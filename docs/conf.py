@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # pysage documentation build configuration file, created by
-# sphinx-quickstart on Mon May 31 16:58:20 2010.
+# sphinx-quickstart on Mon May 31 22:51:37 2010.
 #
 # This file is execfile()d with the current directory set to its containing dir.
 #
@@ -25,7 +25,7 @@ import sys, os
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.coverage', 'sphinx.ext.jsmath', 'sphinx.ext.ifconfig']
+extensions = []
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -214,40 +214,3 @@ man_pages = [
     ('index', 'pysage', u'pysage Documentation',
      [u'Shuo (John) Yang'], 1)
 ]
-
-
-# -- Options for Epub output ---------------------------------------------------
-
-# Bibliographic Dublin Core info.
-epub_title = u'pysage'
-epub_author = u'Shuo (John) Yang'
-epub_publisher = u'Shuo (John) Yang'
-epub_copyright = u'2010, Shuo (John) Yang'
-
-# The language of the text. It defaults to the language option
-# or en if the language is not set.
-#epub_language = ''
-
-# The scheme of the identifier. Typical schemes are ISBN or URL.
-#epub_scheme = ''
-
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#epub_identifier = ''
-
-# A unique identification for the text.
-#epub_uid = ''
-
-# HTML files that should be inserted before the pages created by sphinx.
-# The format is a list of tuples containing the path and title.
-#epub_pre_files = []
-
-# HTML files shat should be inserted after the pages created by sphinx.
-# The format is a list of tuples containing the path and title.
-#epub_post_files = []
-
-# A list of files that should not be packed into the epub file.
-#epub_exclude_files = []
-
-# The depth of the table of contents in toc.ncx.
-#epub_tocdepth = 3
