@@ -14,7 +14,7 @@ setup(name='pysage',
       packages=['pysage'],
       
     # metadata for upload to PyPI
-    author = "John S. Yang",
+    author = "Shuo (John) Yang",
     author_email = "bigjhnny@gmail.com",
     description = "pysage",
     license = "MIT",
