@@ -453,4 +453,8 @@ div.related {
     background-color: #DDDDDD;
 }
 
+a.subtitle:hover {
+    color: #CA7900;
+    text-decoration: none;
+}
 
