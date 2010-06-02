@@ -89,6 +89,45 @@ When you are ready to create an actor instance and have the actor start listenin
 
 the above code runs the game loop, and `"tick"s` roughly 30 times/second.  This concludes the simple game loop example.  To make this more interesting, you may want to define more behaviors on the message handler of the actor.  You may also define the `"update"` method on the `"Player"` actor to do something at every game step.
 
+Sending Messages
+-----------------
+
+For networked messages, first connect to the server.
+::
+
+    mgr.connect(host, port)
+
+Pass in your message properties as keyword arguments to the constructor.
+::
+
+    mgr.send_message(MyMessage(content="1234"), address=(host, port))
+
+This is how you can send a message to another pysage group:
+::
+
+    mgr.send_message_to_group("group_name", MyMessage(data='asdf'))
+
+Pysage will automatically pack your message according to the types you give and send it via the default transport.  You can also build your own custom transport.
+
+Messages can be sent through three different kinds of channels:
+
+#. Local: messages are delivered to actors in the local process.  No serialization or deserialization is done on the message.  The message is delivered as is, a python object.
+
+#. IPC: messages can be delivered to another pysage group.  Messages will be serialized and deserailized and sent over a platform specific channel (domain socket or a named pipe).
+
+#. Network: messages will be serialized and deserialized.  The delivery depends on the network transport protocol chosen by the user.  (so far raknet is offered, raw TCP/UDP coming).
+
+ActorManager class offers the following types of methods:
+
+=========================  ======   =========   =======  ================================================================================================================================================================
+Function                   Local    IPC         Network  Description
+=========================  ======   =========   =======  ================================================================================================================================================================
+`trigger`                  y        _           _        used to immediately process a message synchronously.  Returns after the message has been processed.
+`queue_message`            y        _           _        puts the message on a queue.  Returns immediately.  Message will be processed next time "tick" is called locally
+`queue_message_to_group`   _        y           _        immediately delivers the message to another pysage group via IPC.  It is up to the called group to process the message
+`send_message`             _        _           y        immediately delivers the message to another pysage compatible node via a chosen protocol transport.  It's up to the called node to process the message
+=========================  ======   =========   =======  ================================================================================================================================================================
+
 Other useful methods
 --------------------
 "trigger" is the synchronous version of the `"queue_message"` call, it processes the supplied message immediately and does not wait for the actor manager's `"tick"`
@@ -101,126 +140,32 @@ Other useful methods
 
     mgr.find('player1') # returns the registered actor instance
 
-Prerequisites
--------------
+Selective Queuing/Triggering
+----------------------------
+sends a particular actor a message if that actor implements this message type
+::
 
-Sphinx needs at least **Python 2.4** to run.  If you like to have source code
-highlighting support, you must also install the Pygments_ library, which you can
-do via setuptools' easy_install.  Sphinx should work with docutils version 0.4
-or some (not broken) SVN trunk snapshot.
+    mgr.trigger_to_actor(self, id, msg)
+    mgr.queue_message_to_actor(self, id, msg)
 
-.. _reStructuredText: http://docutils.sf.net/rst.html
-.. _Pygments: http://pygments.org
-
-
-Setting up the documentation sources
+Automatic Message Packing/Unpacking
 ------------------------------------
+packing can be useful for sending messages across network.  This may prove to be useful in the future when pysage supports cross processing message queuing.
+::
 
-The root directory of a documentation collection is called the :dfn:`source
-directory`.  Normally, this directory also contains the Sphinx configuration
-file :file:`conf.py`, but that file can also live in another directory, the
-:dfn:`configuration directory`.
+    class MessageToPack(Message):
+        properties = ['number']
+        packet_type = 101
+        def pack_number(self, value):
+            return (value.x, value.y)
+        def unpack_number(self, value):
+            return vector2(value[0], value[1])
 
-.. versionadded:: 0.3
-   Support for a different configuration directory.
+now this message will automatically be stored as a tuple (1,2)
+upon accessing, it will be converted to a vector object transparently
+::
 
-Sphinx comes with a script called :program:`sphinx-quickstart` that sets up a
-source directory and creates a default :file:`conf.py` from a few questions it
-asks you.  Just run ::
-
-   $ sphinx-quickstart
-
-and answer the questions.
-
-
-Running a build
----------------
-
-A build is started with the :program:`sphinx-build` script.  It is called
-like this::
-
-     $ sphinx-build -b latex sourcedir builddir
-
-where *sourcedir* is the :term:`source directory`, and *builddir* is the
-directory in which you want to place the built documentation (it must be an
-existing directory).  The :option:`-b` option selects a builder; in this example
-Sphinx will build LaTeX files.
-
-The :program:`sphinx-build` script has several more options:
-
-**-a**
-   If given, always write all output files.  The default is to only write output
-   files for new and changed source files.  (This may not apply to all
-   builders.)
-
-**-E**
-   Don't use a saved :term:`environment` (the structure caching all
-   cross-references), but rebuild it completely.  The default is to only read
-   and parse source files that are new or have changed since the last run.
-
-**-t** *tag*
-   Define the tag *tag*.  This is relevant for :dir:`only` directives that only
-   include their content if this tag is set.
-
-   .. versionadded:: 0.6
-
-**-d** *path*
-   Since Sphinx has to read and parse all source files before it can write an
-   output file, the parsed source files are cached as "doctree pickles".
-   Normally, these files are put in a directory called :file:`.doctrees` under
-   the build directory; with this option you can select a different cache
-   directory (the doctrees can be shared between all builders).
-
-**-c** *path*
-   Don't look for the :file:`conf.py` in the source directory, but use the given
-   configuration directory instead.  Note that various other files and paths
-   given by configuration values are expected to be relative to the
-   configuration directory, so they will have to be present at this location
-   too.
-
-   .. versionadded:: 0.3
-
-**-C**
-   Don't look for a configuration file; only take options via the ``-D`` option.
-
-   .. versionadded:: 0.5
-
-**-D** *setting=value*
-   Override a configuration value set in the :file:`conf.py` file.  The value
-   must be a string or dictionary value.  For the latter, supply the setting
-   name and key like this: ``-D latex_elements.docclass=scrartcl``.
-
-   .. versionchanged:: 0.6
-      The value can now be a dictionary value.
-
-**-A** *name=value*
-   Make the *name* assigned to *value* in the HTML templates.
-
-**-N**
-   Do not do colored output.  (On Windows, colored output is disabled in any
-   case.)
-
-**-q**
-   Do not output anything on standard output, only write warnings and errors to
-   standard error.
-
-**-Q**
-   Do not output anything on standard output, also suppress warnings.  Only
-   errors are written to standard error.
-
-**-w** *file*
-   Write warnings (and errors) to the given file, in addition to standard error.
-
-**-W**
-   Turn warnings into errors.  This means that the build stops at the first
-   warning and ``sphinx-build`` exits with exit status 1.
-
-**-P**
-   (Useful for debugging only.)  Run the Python debugger, :mod:`pdb`, if an
-   unhandled exception occurs while building.
+    mgr.queue_message(MessageToPack(number=vector2(1,2)))
 
 
-You can also give one or more filenames on the command line after the source and
-build directories.  Sphinx will then try to build only these output files (and
-their dependencies).
 

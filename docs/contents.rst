@@ -7,16 +7,10 @@ Pysage documentation contents
    :maxdepth: 2
 
    intro
-   concepts
-   rest
-   markup/index
-   builders
-   config
-   theming
-   templating
-   extensions
-
+   grouping
+   networking
    faq
+
    glossary
    changes
    examples
