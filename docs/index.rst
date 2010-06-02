@@ -8,7 +8,7 @@ About
 
 *pysage* is a lightweight high-level message passing library supporting actor based concurrency.  
 
-It also extends the "[http://en.wikipedia.org/wiki/Actor_model actor model]" to support actor partitioning/grouping to further scalability.  pysage has a simple high-level interface.  Messages are serialized and sent lightweight using pipes or domain sockets across local "groups".  In the case of network messages, UDP is used.
+It also extends the `actor model <http://en.wikipedia.org/wiki/Actor_model>`_ to support actor partitioning/grouping to further scalability.  pysage has a simple high-level interface.  Messages are serialized and sent lightweight using pipes or domain sockets across local "groups".  In the case of network messages, UDP is used.
   * simple pythonic API
   * efficient message propagation within group, across group, across network
   * network messages can optionally be configured to be reliable and/or ordered using UDP
@@ -55,7 +55,7 @@ pysage does not confine you to the constraints of the "actor model".  For exampl
 
 Further, actors in the same group are local to each other, so they can have access to each other.  It's kind of like a: "what happens in the group, stays in the group" concept.  Although, using messages are encouraged instead of straight calls for most situations, even in the same pysage group.
 
-Look at [http://code.google.com/p/pysage/wiki/Documentation Documentation] for more.
+Look at `Documentation <http://code.google.com/p/pysage/wiki/Documentation>`_ for more.
 
 Status
 =======
@@ -67,11 +67,9 @@ License
 =======
 pysage itself uses MIT license.  
 
-pysage provides built-in UDP and TCP transport.  However, if you need reliable/ordered UDP messaging across network, pysage uses [http://pyraknet.slowchop.com/ pyraknet] and therefore [http://www.jenkinssoftware.com/ Raknet] for UDP network implementation.  pyraknet uses the GNU Lesser General Public License.
+pysage provides built-in UDP and TCP transport.  However, if you need reliable/ordered UDP messaging across network, pysage uses `pyraknet <http://pyraknet.slowchop.com/ pyraknet>`_ and therefore `Raknet <http://www.jenkinssoftware.com/>`_ for UDP network implementation.  pyraknet uses the GNU Lesser General Public License.
 
-!RakNet is free to use for non-commercial use and purchasable for commercial use. It uses the Creative Commons Attribution - !NonCommercial 2.5 license.
-
-(see [http://www.jenkinssoftware.com/ raknet]/[http://pyraknet.slowchop.com/ pyraknet])
+RakNet is free to use for non-commercial use and purchasable for commercial use. It uses the Creative Commons Attribution - NonCommercial 2.5 license.
 
 ==================================
 
