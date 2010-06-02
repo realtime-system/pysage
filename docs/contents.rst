@@ -1,6 +1,6 @@
 .. _contents:
 
-Pysage documentation contents
+Documentation
 =============================
 
 .. toctree::

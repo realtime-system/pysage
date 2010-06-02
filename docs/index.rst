@@ -65,11 +65,7 @@ May 09th, 2010 - pysage grouping has been updated to provide better windows supp
 
 License
 =======
-pysage itself uses MIT license.  
-
-pysage provides built-in UDP and TCP transport.  However, if you need reliable/ordered UDP messaging across network, pysage uses `pyraknet <http://pyraknet.slowchop.com/ pyraknet>`_ and therefore `Raknet <http://www.jenkinssoftware.com/>`_ for UDP network implementation.  pyraknet uses the GNU Lesser General Public License.
-
-RakNet is free to use for non-commercial use and purchasable for commercial use. It uses the Creative Commons Attribution - NonCommercial 2.5 license.
+pysage uses MIT license.  
 
 ==================================
 
