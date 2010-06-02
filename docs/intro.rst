@@ -32,7 +32,9 @@ Here is the code:
         processed = mgr.tick()
         time.sleep(.03)
 
-import time to be able to "sleep" :)
+Let's go through this line by line:
+
+First of all, import time to be able to "sleep" :)
 ::
     import time
 
@@ -45,7 +47,7 @@ Next, we will create the actor manager.  Per os process (pysage group), you are 
 
 The manager instance does all the book-keeping with actors, messages, and communication across processes/networks, so that you don't have to worry about it.  
 
-We will use it to send messages, and manage actors here.  You will find out in later chapters that the actor manager will also assist you with managing pysage groups and networks.
+We will use it to send messages, and manage actors.  However, you will find out in later chapters that the actor manager will also assist you with managing pysage groups and networks.
 
 ::
 
