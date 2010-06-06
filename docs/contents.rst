@@ -6,9 +6,9 @@ Documentation
 .. toctree::
    :maxdepth: 2
 
-   intro
-   grouping
-   networking
+   local
+   ipc
+   network
    faq
 
    glossary
