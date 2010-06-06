@@ -35,7 +35,6 @@ Here, we have a simple actor that receives a "take damage" message in a 30 ticks
     
     class BombMessage(Message):
         properties = ['damage']
-        packet_type = 101
     
     class Player(Actor):
         subscriptions = ['BombMessage']
@@ -49,13 +48,13 @@ Here, we have a simple actor that receives a "take damage" message in a 30 ticks
         processed = mgr.tick()
         time.sleep(.03)
 
+Run this code, Player would have printed that the message was received.  Hit "ctrl-C" to escape the loop.  
+
 pysage allows you to use this same simple API, for messaging across processes and networks.  
 
 pysage does not confine you to the constraints of the "actor model".  For example, the "grouping" concept allows many actors to reside in the same process.  This allows you to avoid spawning too many os processes and reduce IPC overhead.  
 
 Further, actors in the same group are local to each other, so they can have access to each other.  It's kind of like a: "what happens in the group, stays in the group" concept.  Although, using messages are encouraged instead of straight calls for most situations, even in the same pysage group.
-
-Look at `Documentation <http://code.google.com/p/pysage/wiki/Documentation>`_ for more.
 
 Status
 =======
@@ -66,23 +65,6 @@ May 09th, 2010 - pysage grouping has been updated to provide better windows supp
 License
 =======
 pysage uses MIT license.  
-
-==================================
-
-Contents:
-
-.. toctree::
-   :maxdepth: 2
-
-   intro.rst
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
 
 
 

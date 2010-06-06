@@ -4,7 +4,7 @@ Introduction
 This is the documentation for Pysage, a lightweight high-level message passing library supporting actor based concurrency.
 Pysage is written in Python.  It supports **Python 2.5** and up.
 
-Basics
+Step by step example
 ---------
 
 Let's take a look at the code from the front page.  We'll go over this line by line to give you an in-depth idea what pysage is doing for you.
@@ -18,7 +18,6 @@ Here is the code:
     
     class BombMessage(Message):
         properties = ['damage']
-        packet_type = 101
     
     class Player(Actor):
         subscriptions = ['BombMessage']
@@ -32,8 +31,6 @@ Here is the code:
         processed = mgr.tick()
         time.sleep(.03)
 
-Let's go through this line by line:
-
 First of all, import time to be able to "sleep" :)
 ::
     import time
@@ -43,7 +40,7 @@ Here, we import pysage base classes:
 
     from pysage import Actor, ActorManager, Message
 
-Next, we will create the actor manager.  Per os process (pysage group), you are guaranteed a single instance of the actor manager.  
+Next, we will get a reference to the actor manager.  Per os process (pysage group), you are guaranteed a single instance of the actor manager.  
 
 The manager instance does all the book-keeping with actors, messages, and communication across processes/networks, so that you don't have to worry about it.  
 
@@ -53,18 +50,15 @@ We will use it to send messages, and manage actors.  However, you will find out 
 
     mgr = ActorManager.get_singleton()
 
-To create a message type, define a class that inherits from `"Message"`.  The `"properties"` class variable must be defined and is a list of strings.  The list will contain a set of attributes that this type of message will carry.  The "packet_type" is an integer between 101-255 that uniquely identifies this message type.  This will become especially useful when you need to send this message across groups or networks.
+To create a message type, define a class that inherits from `"Message"`.  The `"properties"` class variable must be defined and is a list of strings.  The list will contain a set of attributes that this type of message will carry. 
 ::
 
     class BombMessage(Message):
         properties = ['damage']
-        packet_type = 101
 
-To create an actor type, define a class that inherits from `"Actor"`.  The `"subscriptions"` class variable of an actor is a list of message type names that the actor will subscribe to.  In our example, the "Player" actor will listen to `"BombMessage"` which we defined above.
+To create an actor class, define a class that inherits from `"Actor"`.  The `"subscriptions"` class variable of an actor is a list of message type names that the actor will subscribe to.  In our example, the "Player" actor will listen to `"BombMessage"` which we defined above.
 
 Additionally, you need to specify what behavior your actor will perform when the message is received.  For each of these message types, the actor class needs to define a method that starts with `"handle_"`, and appended with the message type name.  Again, in our example, we will define a method named `"handle_BombMessage"` to print out something about the bomb.  This method will be called when a `"BombMessage"` is delivered to the actor by pysage.
-
-There is also the `"update"` method that is built-in to pysage "Actor" base class.  This method will be called each time the actor manager "ticks".  We will talk about `"update"` and `"tick"` in a bit.
 ::
 
     class Player(Actor):
@@ -72,12 +66,19 @@ There is also the `"update"` method that is built-in to pysage "Actor" base clas
         def handle_BombMessage(self, msg):
             print 'I took %s damage from the bomb' % msg.get_property('damage')
 
-When you are ready to create an actor instance and have the actor start listening to messages that it subscribes to, call `"register_actor"` on the manager:
+When you are ready to create an actor instance and have the actor start listening to messages that it subscribes to, call `"register_actor"` on the manager. 
 ::
 
-    mgr.register_actor(Player(), 'player1')
+    >>> mgr.register_actor(Player(), 'player1')
+    <__main__.Player object at 0x7fa91183a2d0>
 
-`"queue_message"` queues an instance of a message in the manager's internal queue to be distributed when the manager `"tick"`s.  This facilitates an asynchronous call because the message is only distributed later when manager's `"tick"` is called.
+You can optionally give it a name so that you can "find" it later by its name:
+::
+
+    >>> mgr.find('player1')
+    <__main__.Player object at 0x7fa91183a2d0>
+
+"`queue_message`" queues an instance of a message in the manager's internal queue to be distributed when the manager "`tick`"s.  This facilitates an asynchronous call because the message is only distributed later when manager's "`tick`" is called.
 ::
 
     mgr.queue_message(BombMessage(damage=10))
@@ -89,7 +90,7 @@ When you are ready to create an actor instance and have the actor start listenin
         processed = mgr.tick()
         time.sleep(.03)
 
-the above code runs the game loop, and `"tick"s` roughly 30 times/second.  This concludes the simple game loop example.  To make this more interesting, you may want to define more behaviors on the message handler of the actor.  You may also define the `"update"` method on the `"Player"` actor to do something at every game step.
+the above code runs the game loop, and `"tick"s` roughly 30 times/second.  However, you may call "mgr.tick" however often to suit your own need.  This concludes our simple example.  To make this more interesting, you may want to add more actors/behaviors.  You may also define the "`update`" method on the "`Player`" actor to do something at every game step.
 
 Sending Messages
 -----------------
@@ -171,3 +172,9 @@ upon accessing, it will be converted to a vector object transparently
 
 
 
+
+
+
+
+
+There is also the `"update"` method that is built-in to pysage "Actor" base class.  This method will be called each time the actor manager "ticks".  We will talk about `"update"` and `"tick"` in a bit.

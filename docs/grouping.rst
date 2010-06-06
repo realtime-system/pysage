@@ -5,7 +5,10 @@ This section describes Pysage's "Grouping" functionality.
 
 Basics
 ---------------------------------
-Grouping can be very useful in partitioning actors into separate processes.  Actors in different groups have their own independent update/message handling loop.  And messages can be communicated across groups via IPC.  
+Grouping can be very useful in partitioning actors into separate processes.  Actors in the same group are local to each other, so they can have access to each other.  It's kind of like a: "what happens in the group, stays in the group" concept.  Although, using messages are strongly encouraged instead of straight calls for most situations, even in the same pysage group.  Actors in different groups have their own independent update/message handling loop.  And messages can be communicated across groups via IPC.  
+
+The "packet_type" is an integer between 101-255 that uniquely identifies this message type.  This will become especially useful when you need to send this message across groups or networks.
+ 
 ::
 
     class Consumer(MessageReceiver):
