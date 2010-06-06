@@ -1,5 +1,5 @@
-Pysage Grouping
-================
+Messaging across Processes
+****************************
 
 This section describes Pysage's "Grouping" functionality.
 

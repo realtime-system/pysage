@@ -54,7 +54,7 @@ pysage allows you to use this same simple API, for messaging across processes an
 
 pysage does not confine you to the constraints of the "actor model".  For example, the "grouping" concept allows many actors to reside in the same process.  This allows you to avoid spawning too many os processes and reduce IPC overhead.  
 
-Further, actors in the same group are local to each other, so they can have access to each other.  It's kind of like a: "what happens in the group, stays in the group" concept.  Although, using messages are encouraged instead of straight calls for most situations, even in the same pysage group.
+Refer to :doc:`documentation <documentation>` for more.
 
 Status
 =======

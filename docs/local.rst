@@ -1,11 +1,14 @@
-Introduction
-============
+Messaging Locally
+*******************
 
 This is the documentation for Pysage, a lightweight high-level message passing library supporting actor based concurrency.
 Pysage is written in Python.  It supports **Python 2.5** and up.
 
+Introduction
+============
+
 Step by step example
----------
+--------------------
 
 Let's take a look at the code from the front page.  We'll go over this line by line to give you an in-depth idea what pysage is doing for you.
 Here is the code:
@@ -33,6 +36,7 @@ Here is the code:
 
 First of all, import time to be able to "sleep" :)
 ::
+
     import time
 
 Here, we import pysage base classes:
@@ -90,49 +94,21 @@ You can optionally give it a name so that you can "find" it later by its name:
         processed = mgr.tick()
         time.sleep(.03)
 
-the above code runs the game loop, and `"tick"s` roughly 30 times/second.  However, you may call "mgr.tick" however often to suit your own need.  This concludes our simple example.  To make this more interesting, you may want to add more actors/behaviors.  You may also define the "`update`" method on the "`Player`" actor to do something at every game step.
+the above code runs the game loop, and `"tick"s` roughly 30 times/second.  However, you may call "mgr.tick" however often to suit your own need.  This concludes our simple example.  To make this more interesting, you may want to add more actors/behaviors.  You may also define the "`update`" method on the "`Player`" actor to do something at every game step.  We will talk about `"update"` and `"tick"` in a bit.
 
-Sending Messages
------------------
+Advanced
+==========
 
-For networked messages, first connect to the server.
+Selective Queuing/Triggering
+-----------------------------
+sends a particular actor a message if that actor implements this message type
 ::
 
-    mgr.connect(host, port)
+    mgr.trigger_to_actor(self, id, msg)
+    mgr.queue_message_to_actor(self, id, msg)
 
-Pass in your message properties as keyword arguments to the constructor.
-::
-
-    mgr.send_message(MyMessage(content="1234"), address=(host, port))
-
-This is how you can send a message to another pysage group:
-::
-
-    mgr.send_message_to_group("group_name", MyMessage(data='asdf'))
-
-Pysage will automatically pack your message according to the types you give and send it via the default transport.  You can also build your own custom transport.
-
-Messages can be sent through three different kinds of channels:
-
-#. Local: messages are delivered to actors in the local process.  No serialization or deserialization is done on the message.  The message is delivered as is, a python object.
-
-#. IPC: messages can be delivered to another pysage group.  Messages will be serialized and deserailized and sent over a platform specific channel (domain socket or a named pipe).
-
-#. Network: messages will be serialized and deserialized.  The delivery depends on the network transport protocol chosen by the user.  (so far raknet is offered, raw TCP/UDP coming).
-
-ActorManager class offers the following types of methods:
-
-=========================  ======   =========   =======  ================================================================================================================================================================
-Function                   Local    IPC         Network  Description
-=========================  ======   =========   =======  ================================================================================================================================================================
-`trigger`                  y        _           _        used to immediately process a message synchronously.  Returns after the message has been processed.
-`queue_message`            y        _           _        puts the message on a queue.  Returns immediately.  Message will be processed next time "tick" is called locally
-`queue_message_to_group`   _        y           _        immediately delivers the message to another pysage group via IPC.  It is up to the called group to process the message
-`send_message`             _        _           y        immediately delivers the message to another pysage compatible node via a chosen protocol transport.  It's up to the called node to process the message
-=========================  ======   =========   =======  ================================================================================================================================================================
-
-Other useful methods
---------------------
+Synchronous Messaging
+-----------------------
 "trigger" is the synchronous version of the `"queue_message"` call, it processes the supplied message immediately and does not wait for the actor manager's `"tick"`
 ::
 
@@ -142,14 +118,6 @@ Other useful methods
 ::
 
     mgr.find('player1') # returns the registered actor instance
-
-Selective Queuing/Triggering
-----------------------------
-sends a particular actor a message if that actor implements this message type
-::
-
-    mgr.trigger_to_actor(self, id, msg)
-    mgr.queue_message_to_actor(self, id, msg)
 
 Automatic Message Packing/Unpacking
 ------------------------------------
@@ -170,11 +138,9 @@ upon accessing, it will be converted to a vector object transparently
 
     mgr.queue_message(MessageToPack(number=vector2(1,2)))
 
+Actor's Update each tick
+------------------------------------
+There is also the `"update"` method that is built-in to pysage "Actor" base class.  This method will be called each time the actor manager "ticks".  
 
 
 
-
-
-
-
-There is also the `"update"` method that is built-in to pysage "Actor" base class.  This method will be called each time the actor manager "ticks".  We will talk about `"update"` and `"tick"` in a bit.
