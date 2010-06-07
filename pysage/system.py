@@ -301,6 +301,8 @@ class ActorManager(messaging.MessageManager):
             - `msg`: the message to send
             - `clientid`: the network for which to send the message to
         '''
+        if not type(msg).packet_type:
+            raise PacketTypeError('Packet_type must be specified by class "%s"' % type(msg))
         self.transport.send(msg.to_string(), address=address)
         return self
     def queue_message_to_group(self, group, msg):
@@ -311,6 +313,8 @@ class ActorManager(messaging.MessageManager):
         self.log(logging.INFO, 'queuing message "%s" to "%s"' % (msg, _clientid))
         self.ipc_transport.send(msg.to_string(), _clientid)
     def broadcast_message(self, msg):
+        if not type(msg).packet_type:
+            raise PacketTypeError('Packet_type must be specified by class "%s"' % type(msg))
         self.transport.send(msg.to_string(), broadcast=True)
         return self
     def packet_handler(self, packet, address):
@@ -328,7 +332,8 @@ class ActorManager(messaging.MessageManager):
         if packet_class.__name__ == 'Message':
             return
         if not packet_class.packet_type:
-            raise PacketTypeError('Packet_type must be specified by class "%s"' % packet_class)
+            # raise PacketTypeError('Packet_type must be specified by class "%s"' % packet_class)
+            return
         if packet_class.packet_type <= 100:
             raise PacketTypeError('Packet_type must be greater than 100.  Had "%s"' % packet_class.packet_type)
         if self.packet_types.has_key(packet_class.packet_type):

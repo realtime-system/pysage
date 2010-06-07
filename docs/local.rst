@@ -54,15 +54,15 @@ We will use it to send messages, and manage actors.  However, you will find out 
 
     mgr = ActorManager.get_singleton()
 
-To create a message type, define a class that inherits from `"Message"`.  The `"properties"` class variable must be defined and is a list of strings.  The list will contain a set of attributes that this type of message will carry. 
+To create a message type, define a class that inherits from ``Message``.  The ``properties`` class variable must be defined and is a list of strings.  The list will contain a set of attributes that this type of message will carry. 
 ::
 
     class BombMessage(Message):
         properties = ['damage']
 
-To create an actor class, define a class that inherits from `"Actor"`.  The `"subscriptions"` class variable of an actor is a list of message type names that the actor will subscribe to.  In our example, the "Player" actor will listen to `"BombMessage"` which we defined above.
+To create an actor class, define a class that inherits from ``Actor``.  The ``subscriptions`` class variable of an actor is a list of message type names that the actor will subscribe to.  In our example, the "Player" actor will listen to ``BombMessage`` which we defined above.
 
-Additionally, you need to specify what behavior your actor will perform when the message is received.  For each of these message types, the actor class needs to define a method that starts with `"handle_"`, and appended with the message type name.  Again, in our example, we will define a method named `"handle_BombMessage"` to print out something about the bomb.  This method will be called when a `"BombMessage"` is delivered to the actor by pysage.
+Additionally, you need to specify what behavior your actor will perform when the message is received.  For each of these message types, the actor class needs to define a method that starts with ``handle_``, and appended with the message type name.  Again, in our example, we will define a method named ``handle_BombMessage`` to print out something about the bomb.  This method will be called when a ``BombMessage`` is delivered to the actor by pysage.
 ::
 
     class Player(Actor):
@@ -70,7 +70,7 @@ Additionally, you need to specify what behavior your actor will perform when the
         def handle_BombMessage(self, msg):
             print 'I took %s damage from the bomb' % msg.get_property('damage')
 
-When you are ready to create an actor instance and have the actor start listening to messages that it subscribes to, call `"register_actor"` on the manager. 
+When you are ready to create an actor instance and have the actor start listening to messages that it subscribes to, call ``register_actor`` on the manager. 
 ::
 
     >>> mgr.register_actor(Player(), 'player1')
@@ -82,46 +82,54 @@ You can optionally give it a name so that you can "find" it later by its name:
     >>> mgr.find('player1')
     <__main__.Player object at 0x7fa91183a2d0>
 
-"`queue_message`" queues an instance of a message in the manager's internal queue to be distributed when the manager "`tick`"s.  This facilitates an asynchronous call because the message is only distributed later when manager's "`tick`" is called.
+``queue_message`` queues an instance of a message in the manager's internal queue to be distributed when the manager ``tick``s.  This facilitates an asynchronous call because the message is only distributed later when manager's ``tick`` is called.
 ::
 
     mgr.queue_message(BombMessage(damage=10))
 
-`"tick"` method first distributes messages to actors, then call the actor's `"update"` method according to their `"priorities"`, which we will discuss later.
+``tick`` method first distributes messages to actors, then call the actor's ``update`` method according to their ``priorities``, which we will discuss later.
 ::
 
     while True:
         processed = mgr.tick()
         time.sleep(.03)
 
-the above code runs the game loop, and `"tick"s` roughly 30 times/second.  However, you may call "mgr.tick" however often to suit your own need.  This concludes our simple example.  To make this more interesting, you may want to add more actors/behaviors.  You may also define the "`update`" method on the "`Player`" actor to do something at every game step.  We will talk about `"update"` and `"tick"` in a bit.
+the above code runs the game loop, and ``tick"s` roughly 30 times/second.  However, you may call "mgr.tick" however often to suit your own need.  This concludes our simple example.  To make this more interesting, you may want to add more actors/behaviors.  You may also define the ``update`` method on the ``Player`` actor to do something at every game step.  We will talk about ``update`` and ``tick`` in a bit.
 
 Advanced
 ==========
 
-Selective Queuing/Triggering
------------------------------
-sends a particular actor a message if that actor implements this message type
-::
-
-    mgr.trigger_to_actor(self, id, msg)
-    mgr.queue_message_to_actor(self, id, msg)
-
 Synchronous Messaging
 -----------------------
-"trigger" is the synchronous version of the `"queue_message"` call, it processes the supplied message immediately and does not wait for the actor manager's `"tick"`
+``trigger`` is the synchronous version of the ``queue_message`` call, it processes the supplied message immediately and does not wait for the actor manager's ``tick``
 ::
 
-    mgr.trigger(BombMessage(damage=10)) # prints "the secret is small secret"
+    >>> mgr.register_actor(Player(), 'player1')
+    >>> mgr.trigger(BombMessage(damage=10)) 
+    actor prints that it received the message
 
-`"find"` returns back the instance of the registered actor with that name
+Selective Queuing/Triggering
+-----------------------------
+At times, you may find that you want to "queue" or "trigger" a message to a specific actor and bypass broadcasting the message to all its subscribers.  You may do so with ``queue_message_to_actor`` or ``trigger_to_actor``.
+::
+    
+    >>> mgr.register_actor(Player(), 'player1')
+
+    >>> actor_id = mgr.find('player1').gid
+
+Each registered actor has an attribute ``gid``, it is a unique id for that actor in the process that the actor belongs to.  Both ``queue_message_to_actor`` and ``trigger_to_actor`` take the actor's ``gid``:
 ::
 
-    mgr.find('player1') # returns the registered actor instance
+    >>> mgr.queue_message_to_actor(actor_id, BombMessage(damage=10))
+    >>> mgr.tick()
+    actor prints that it received the message
+
+    >>> mgr.trigger_to_actor(actor_id, BombMessage(damage=10))
+    actor prints that it received the message
 
 Automatic Message Packing/Unpacking
 ------------------------------------
-packing can be useful for sending messages across network.  This may prove to be useful in the future when pysage supports cross processing message queuing.
+packing can be useful for sending messages across network/process.  Because pysage internally packs messages into C structs and sends them in a packet when messaging across network/process, complex types that are not otherwise packable need to get processed and decomposed down to simple C types.
 ::
 
     class MessageToPack(Message):
@@ -140,7 +148,7 @@ upon accessing, it will be converted to a vector object transparently
 
 Actor's Update each tick
 ------------------------------------
-There is also the `"update"` method that is built-in to pysage "Actor" base class.  This method will be called each time the actor manager "ticks".  
+There is also the ``update`` method that is built-in to pysage "Actor" base class.  This method will be called each time the actor manager "ticks".  
 
 
 

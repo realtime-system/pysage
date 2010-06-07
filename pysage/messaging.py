@@ -65,17 +65,17 @@ class Message(object):
         return self.sender
     def lazy_set_property(self, name, value):
         '''this does same as set_property, without validation'''
-        self._properties[name] = self.pack_property(name, value)        
+        self._properties[name] = value
     def set_property(self, name, value):
         '''set required property of the message'''
         if name not in self.properties:
             raise InvalidMessageProperty('Invalid Message Property: %s' % name)
-        self._properties[name] = self.pack_property(name, value)
+        self._properties[name] = value
     def get_property(self, name, default=None):
         if name not in self.properties:
             raise InvalidMessageProperty('Invalid Message Property: %s' % name)
         if not self._properties[name] is None:
-            return self.unpack_property(name, self._properties[name])
+            return self._properties[name]
         else:
             return default
     def pack_property(self, name, value):

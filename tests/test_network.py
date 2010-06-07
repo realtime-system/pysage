@@ -66,6 +66,20 @@ class PongMessage(Message):
     types = ['i']
     packet_type = 113
 
+class TestCoord(object):
+    def __init__(self, x,y):
+        self.x, self.y = x,y
+
+class ComplexMessage(Message):
+    properties = ['coordinate', 'speed']
+    types = [('i','i'), 'd']
+    packet_type = 120
+    def pack_coordinate(self, value):
+        print value
+        return value.x, value.y
+    def unpack_coordinate(self, values):
+        return TestCoord(values[0], values[1])
+
 class PingReceiver(Actor):
     '''this is the actor that will be spawned in the new process'''
     subscriptions = ['PingMessage', 'TestMeMessage', 'SYNACKMessage']
@@ -133,6 +147,14 @@ class TestNetwork(unittest.TestCase):
         assert m.to_string() == 'l' + '\xff' + 'a' * 255
         m = PascalMessage(data='a' * 256)
         self.assertRaises(ValueError, m.to_string)
+    def test_pack_complex_message(self):
+        m = ComplexMessage(coordinate=TestCoord(1,2), speed=10.0)
+        assert m._properties['coordinate'].x == 1, m._properties['coordinate'].y == 2
+        s = m.to_string()
+        nm = ComplexMessage()
+        nm.from_string(s)
+        coord = nm.get_property('coordinate')
+        assert coord.x == 1 and coord.y ==2 and nm.get_property('speed') == 10.0
     def test_bad_message(self):
         m = BadMessage(data=1)
         self.assertRaises(WrongMessageTypeSpecified, m.to_string)

@@ -170,14 +170,14 @@ class TestMessage(unittest.TestCase):
         msg.set_property('name', 'robin')
         assert msg.get_property('name') == 'robin'
         
-    def test_packing(self):
-        msg = MessageToPack(secret='secret')
-        assert msg._properties['secret'] == 's'
-    
-    def test_unpacking(self):
-        msg = MessageToPack(secret='secret')
-        assert msg._properties['secret'] == 's'
-        assert msg.get_property('secret') == 'secret'
+    # def test_packing(self):
+    #     msg = MessageToPack(secret='secret')
+    #     assert msg._properties['secret'] == 's'
+    # 
+    # def test_unpacking(self):
+    #     msg = MessageToPack(secret='secret')
+    #     assert msg._properties['secret'] == 's'
+    #     assert msg.get_property('secret') == 'secret'
         
     def test_zeroMessageProperty(self):
         msg = Test(name=0)
