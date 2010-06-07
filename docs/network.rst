@@ -1,4 +1,4 @@
-Messageing across Network
+Messaging across Network
 ***************************
 
 This section describes how to send message across a network
@@ -70,6 +70,25 @@ Type     Description
 "an"     array of arbitrary length of type "n"
 "S"      a long string of arbitrary size, bigger than 255
 =======  ===================================================
+
+Automatic Message Packing/Unpacking
+------------------------------------
+packing can be useful for sending messages across network/process.  Pysage internally packs messages into C structs and sends them in a packet when messaging across network/process.  Complex types that are not otherwise packable need to get processed and decomposed down to simple C types.  ``pack_xxx`` and ``unpack_xxx`` let you implement serialization behaviour.
+::
+
+    class MessageToPack(Message):
+        properties = ['number']
+        packet_type = 101
+        def pack_number(self, value):
+            return (value.x, value.y)
+        def unpack_number(self, value):
+            return vector2(value[0], value[1])
+
+now this message will automatically be stored as a tuple (1,2)
+upon accessing, it will be converted to a vector object transparently
+::
+
+    mgr.queue_message(MessageToPack(number=vector2(1,2)))
 
 Builtin Server
 -----------------

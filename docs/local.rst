@@ -127,25 +127,6 @@ Each registered actor has an attribute ``gid``, it is a unique id for that actor
     >>> mgr.trigger_to_actor(actor_id, BombMessage(damage=10))
     actor prints that it received the message
 
-Automatic Message Packing/Unpacking
-------------------------------------
-packing can be useful for sending messages across network/process.  Because pysage internally packs messages into C structs and sends them in a packet when messaging across network/process, complex types that are not otherwise packable need to get processed and decomposed down to simple C types.
-::
-
-    class MessageToPack(Message):
-        properties = ['number']
-        packet_type = 101
-        def pack_number(self, value):
-            return (value.x, value.y)
-        def unpack_number(self, value):
-            return vector2(value[0], value[1])
-
-now this message will automatically be stored as a tuple (1,2)
-upon accessing, it will be converted to a vector object transparently
-::
-
-    mgr.queue_message(MessageToPack(number=vector2(1,2)))
-
 Actor's Update each tick
 ------------------------------------
 There is also the ``update`` method that is built-in to pysage "Actor" base class.  This method will be called each time the actor manager "ticks".  
