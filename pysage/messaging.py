@@ -72,6 +72,7 @@ class Message(object):
             raise InvalidMessageProperty('Invalid Message Property: %s' % name)
         self._properties[name] = value
     def get_property(self, name, default=None):
+        '''get a given property from the message, if the retrieved property is None, ``default`` is returned'''
         if name not in self.properties:
             raise InvalidMessageProperty('Invalid Message Property: %s' % name)
         if not self._properties[name] is None:
