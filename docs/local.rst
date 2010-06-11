@@ -175,6 +175,26 @@ Each registered actor has an attribute ``gid``, it is a unique id for that actor
 Actor's Update each tick
 ------------------------------------
 There is also the ``update`` method that is built-in to pysage "Actor" base class.  This method will be called each time the actor manager "ticks".  
+::
+
+    import time
+
+    class Player(Actor):
+        subscriptions = ['BombMessage']
+        def __init__(self):
+            Actor.__init__(self)
+            self.time_last_update = time.time()
+        def handle_BombMessage(self, msg):
+            print 'I took %s damage from the bomb' % msg.get_property('damage')
+            return False
+        def update(self):
+            if time.time() - self.time_last_update > 5.0:
+                mgr.queue_message(BombMessage(damage=10))
+                self.time_last_update = time.time()
+
+We just defined ourselves a very interesting actor that throws a bomb on himself every 5 seconds using the ``update`` method.  Keep in mind you will need to call ``tick`` for the actor's ``update`` to run.  In your message loop, you will need to decide how often to call ``tick``.
+
+In addition, it is perfectly fine to ``queue`` messages or ``trigger`` messages inside of update.  However, do NOT call ``tick`` inside of ``update`` unless you want to end up in a loop.
 
 
 
