@@ -62,7 +62,7 @@ To create a message type, define a class that inherits from ``Message``.  The ``
 
 To create an actor class, define a class that inherits from ``Actor``.  The ``subscriptions`` class variable of an actor is a list of message type names that the actor will subscribe to.  In our example, the "Player" actor will listen to ``BombMessage`` which we defined above.
 
-Additionally, you need to specify what behavior your actor will perform when the message is received.  For each of these message types, the actor class needs to define a method that starts with ``handle_``, and appended with the message type name.  Again, in our example, we will define a method named ``handle_BombMessage`` to print out something about the bomb.  This method will be called when a ``BombMessage`` is delivered to the actor by pysage.
+Additionally, you need to specify what behavior your actor will perform when the message is received.  For each of these message types, the actor class needs to define a method that starts with ``handle_``, and appended with the message type name.  Again, in our example, we will define a method named ``handle_BombMessage`` to print out something about the bomb.  This method will be called when a ``BombMessage`` is delivered to the actor by pysage and is our ``message handler``.  More on that in the next section.
 ::
 
     class Player(Actor):
@@ -85,7 +85,7 @@ You can optionally give it a name so that you can "find" it later by its name:
 ``queue_message`` queues an instance of a message in the manager's internal queue to be distributed when the manager ``tick``s.  This facilitates an asynchronous call because the message is only distributed later when manager's ``tick`` is called.
 ::
 
-    mgr.queue_message(BombMessage(damage=10))
+    >>> mgr.queue_message(BombMessage(damage=10))
 
 ``tick`` method first distributes messages to actors, then call the actor's ``update`` method according to their ``priorities``, which we will discuss later.
 ::
@@ -95,6 +95,51 @@ You can optionally give it a name so that you can "find" it later by its name:
         time.sleep(.03)
 
 the above code runs the game loop, and ``tick"s` roughly 30 times/second.  However, you may call "mgr.tick" however often to suit your own need.  This concludes our simple example.  To make this more interesting, you may want to add more actors/behaviors.  You may also define the ``update`` method on the ``Player`` actor to do something at every game step.  We will talk about ``update`` and ``tick`` in a bit.
+
+Message Handlers
+------------------
+Message handlers define actor's behaviours when they receive a message.  In our previous example, the method ``handle_BombMessage(self, msg)`` is our message handler.  Message handlers are always called with the given message when a message is delivered.  Define it to return ``True`` if you want to stop propagation of the message or ``False`` if you want to continue propagating the message.  For example, if we want the first actor that get the ``BombMessage`` message to stop the message from propagating to other players, just return ``True`` at the end of the message handler:
+::
+
+    class Player(Actor):
+        subscriptions = ['BombMessage']
+        def handle_BombMessage(self, msg):
+            print 'I took %s damage from the bomb' % msg.get_property('damage')
+            return True
+
+Now it doesn't matter how many actors are subscribed to that message, the first actor to receive the message will stop the message from propagation:
+
+::
+
+    >>> mgr.register_actor(Player(), 'player1')
+    >>> mgr.register_actor(Player(), 'player2')
+    >>> mgr.register_actor(Player(), 'player3')
+
+    >>> mgr.queue_message(BombMessage(damage=10))
+
+    >>> manager.tick()
+    this will only print once
+
+On the other handle, if we defined the actor to return ``False``:
+::
+
+    class Player(Actor):
+        subscriptions = ['BombMessage']
+        def handle_BombMessage(self, msg):
+            print 'I took %s damage from the bomb' % msg.get_property('damage')
+            return False
+
+The message will be delivered to all subscribed actors and will print three times:
+::
+
+    >>> mgr.register_actor(Player(), 'player1')
+    >>> mgr.register_actor(Player(), 'player2')
+    >>> mgr.register_actor(Player(), 'player3')
+
+    >>> mgr.queue_message(BombMessage(damage=10))
+
+    >>> manager.tick()
+    this will print three times
 
 Advanced
 ==========

@@ -97,7 +97,7 @@ class TestMessage(unittest.TestCase):
         msg2 = Message()
         messageManager.queue_message(msg2)
         assert not 'Message' in messageManager.message_types and 'Test' in messageManager.message_types
-        assert messageManager.get_message_count() == 1
+        assert messageManager.get_message_count() == 2
         # unhandled messages will be dropped
         assert messageManager.tick()
         assert messageManager.get_message_count() == 0

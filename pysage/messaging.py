@@ -212,11 +212,11 @@ class MessageManager(util.ProcessLocalSingleton):
         if not self.validate_type(msg.message_type):
             return False
         # Here we need to gracefully handle messages of type that isn't subscribed by any receivers
-        if not self.message_receiver_map.has_key(msg.message_type) and not self.message_receiver_map[WildCardMessageType]:
-            return False
-        else:
-            self.active_queue.append(msg)
-            return True
+        # if not self.message_receiver_map.has_key(msg.message_type) and not self.message_receiver_map[WildCardMessageType]:
+        #     return False
+        # else:
+        self.active_queue.append(msg)
+        return True
     def trigger(self, msg):
         '''
         same as queue_message, except that this is synchronous
