@@ -48,7 +48,7 @@ Here, we have a simple actor that receives a "take damage" message in a 30 ticks
         processed = mgr.tick()
         time.sleep(.03)
 
-Run this code, Player would have printed that the message was received.  Hit "ctrl-C" to escape the loop.  
+Run this code, Player would have printed that the message was received.  Hit "ctrl-c" to escape the loop.  
 
 pysage allows you to use this same simple API, for messaging across processes and networks.  
 
