@@ -87,6 +87,57 @@ class SelectUDPTransport(Transport):
     @property
     def address(self):
         return self.socket.getsockname()
+
+class SmartUDPTransport(Transport):
+    def __init__(self):
+        self.socket = None
+        self.peers = {}
+        self._is_connected = False
+        self.outgoing_queue = []
+        self.incoming_queue = []
+    def listen(self, host, port, connection_handler=None):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.setblocking(False)
+        self.socket.bind((host, port))
+        # listen is not needed for UDP socket since it's a connectionless protocol
+        # self.socket.listen(5)
+    def poll(self, packet_handler):
+        processed = False
+        inputready, outputready, exceptready = select.select([self.socket.fileno()], [], [], 0)
+        for fd in inputready:
+            if fd == self.socket.fileno():
+                # UDP is connectionless, therefore no accept calls
+                packet, address = self.socket.recvfrom(65536)
+                if not address in self.peers:
+                    self.peers[address] = None
+                packet_handler(packet, address)
+                processed = True
+        return processed
+    def connect(self, host, port):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.setblocking(False)
+        self.socket.connect((host, port))
+        self._is_connected = True
+    def disconnect(self):
+        self.socket.close()
+    def send(self, data, address=None, broadcast=False):
+        if address:
+            sent = 0
+            while sent != len(data):
+                sent = self.socket.sendto(data, address)
+        elif self._is_connected:
+            # if we are the client, just send it to the server
+            sent = 0
+            while sent != len(data):
+                sent = self.socket.send(data)
+        elif broadcast:
+            for addr in self.peers.keys():
+                sent = 0
+                while sent != len(data):
+                    sent = self.socket.sendto(data, addr)
+    @property
+    def address(self):
+        return self.socket.getsockname()
         
 class IPCTransport(Transport):
     def __init__(self):
