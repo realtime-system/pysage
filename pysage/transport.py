@@ -2,6 +2,8 @@
 import process as processing
 import socket
 import select
+import warnings
+import struct
 
 try:
     import pyraknet
@@ -9,6 +11,8 @@ except ImportError:
     RAKNET_AVAILABLE = False
 else:
     RAKNET_AVAILABLE = True
+    
+logger = processing.get_logger()
 
 class Transport(object):
     '''an interface that all transports must implement'''
@@ -88,53 +92,112 @@ class SelectUDPTransport(Transport):
     def address(self):
         return self.socket.getsockname()
 
-class SmartUDPTransport(Transport):
+class SelectTCPTransport(Transport):
     def __init__(self):
         self.socket = None
-        self.peers = {}
+        self.peers = [] 
+        self.addrs = {}
+        self.buffer = {}
         self._is_connected = False
         self.outgoing_queue = []
         self.incoming_queue = []
     def listen(self, host, port, connection_handler=None):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setblocking(False)
         self.socket.bind((host, port))
-        # listen is not needed for UDP socket since it's a connectionless protocol
-        # self.socket.listen(5)
+        self.socket.listen(5)
+    def process_received_data(self, sock, data, packet_handler):
+        buf, length = self.buffer[sock]
+        
+        buf = buf + data
+        size = struct.calcsize("!L")
+        
+        # if length isn't defined, we'll see if we have enough to define it
+        if not length:
+            if len(buf) >= size:
+                length = struct.unpack("!L", buf[:size])[0]
+        
+        # if length is defined, we've decoded the message length already
+        if length:
+            # if we've got the complete message, then handle it and remove it from the buffer
+            if len(buf) >= (length + size):
+                packet_handler(buf[size:length+size], address)
+                buf = buf[length + size:]
+                length = None
+                pass
+            # if we haven't gotten the complete message, just hang tight
+        self.buffer[sock] = (buf, length)
+    def remove_from_addrs(self, sock):
+        self.addrs = dict(addr for addr in self.addrs.items() if not addr[1] == sock)
     def poll(self, packet_handler):
+        logger.warning('%s polling...' % ('Client' if self._is_connected else 'Server'))
         processed = False
-        inputready, outputready, exceptready = select.select([self.socket.fileno()], [], [], 0)
-        for fd in inputready:
-            if fd == self.socket.fileno():
-                # UDP is connectionless, therefore no accept calls
-                packet, address = self.socket.recvfrom(65536)
-                if not address in self.peers:
-                    self.peers[address] = None
-                packet_handler(packet, address)
+        try:
+            inputready, outputready, exceptready = select.select([self.socket], [], [], 0)
+        except select.error, e:
+            warnings.warn('Error with network select: %s' % e)
+            return processed
+        except socket.error, e:
+            warnings.warn('Error with network select: %s' % e)
+            return processed
+        
+        for sock in inputready:
+            if not self._is_connected and sock == self.socket:
+                logger.warning('%s accepting...' % ('Client' if self._is_connected else 'Server'))
+                # if server socket is readable, we are ready to accept
+                clientsock, address = self.socket.accept()
+                logger.warning('accepted %s' % address)
+                if not address in self.addrs:
+                    self.addrs[address] = clientsock
+                if not clientsock in self.peers:
+                    self.peers.append(clientsock)
+                    self.buffer[clientsock] = ('', None)
+            else:
+                logger.warning('%s receiving...' % ('Client' if self._is_connected else 'Server'))
+                # otherwise, we have some data to read from outside
+                try:
+                    data = sock.recv(1024)
+                    if data:
+                        self.process_received_data(sock, data, packet_handler)
+                    else:
+                        # client closed connection, they are done sending the message
+                        sock.close()
+                        self.peers.remove(sock)
+                        del self.buffer[sock]
+                        self.remove_from_addrs(sock)
+                except socket.error, e:
+                    warnings.warn('%s Error receiving data: %s' % ('Client' if self._is_connected else 'Server', e))
+                    if sock in self.peers:
+                        self.peers.remove(sock)
+                    if sock in self.buffer:
+                        del self.buffer[sock]
+                    self.remove_from_addrs(sock)
+                        
                 processed = True
         return processed
     def connect(self, host, port):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        logger.info("Connecting to %s,%s" % (host, port))
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setblocking(False)
         self.socket.connect((host, port))
         self._is_connected = True
     def disconnect(self):
         self.socket.close()
     def send(self, data, address=None, broadcast=False):
+        logger.warning('%s sending...' % ('Client' if self._is_connected else 'Server'))
+        data = struct.pack("!L",len(data)) + data
+        sock = None
         if address:
-            sent = 0
-            while sent != len(data):
-                sent = self.socket.sendto(data, address)
+            sock = self.addrs[address]
+        if sock:
+            sock.sendall(data)
         elif self._is_connected:
             # if we are the client, just send it to the server
-            sent = 0
-            while sent != len(data):
-                sent = self.socket.send(data)
+            sent = self.socket.sendall(data)
+            logger.warning('sent %s' % sent)
         elif broadcast:
-            for addr in self.peers.keys():
-                sent = 0
-                while sent != len(data):
-                    sent = self.socket.sendto(data, addr)
+            for s in self.peers:
+                s.sendall(data)
     @property
     def address(self):
         return self.socket.getsockname()
