@@ -4,6 +4,8 @@ import socket
 import select
 import warnings
 import struct
+import time
+import os
 
 try:
     import pyraknet
@@ -102,6 +104,7 @@ class SelectTCPTransport(Transport):
         self.outgoing_queue = []
         self.incoming_queue = []
     def listen(self, host, port, connection_handler=None):
+        logger.info("pid %s listening..." % os.getpid())
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setblocking(False)
         self.socket.bind((host, port))
@@ -121,19 +124,23 @@ class SelectTCPTransport(Transport):
         if length:
             # if we've got the complete message, then handle it and remove it from the buffer
             if len(buf) >= (length + size):
-                packet_handler(buf[size:length+size], address)
+                packet_handler(buf[size:length+size], sock.getsockname())
                 buf = buf[length + size:]
                 length = None
                 pass
             # if we haven't gotten the complete message, just hang tight
         self.buffer[sock] = (buf, length)
-    def remove_from_addrs(self, sock):
+    def remove_socket(self, sock):
         self.addrs = dict(addr for addr in self.addrs.items() if not addr[1] == sock)
+        if sock in self.peers:
+            self.peers.remove(sock)
+        if sock in self.buffer:
+            del self.buffer[sock]
     def poll(self, packet_handler):
-        logger.warning('%s polling...' % ('Client' if self._is_connected else 'Server'))
+        logger.warning('pid %s polling...%s' % (os.getpid(), time.time()))
         processed = False
         try:
-            inputready, outputready, exceptready = select.select([self.socket], [], [], 0)
+            inputready, outputready, exceptready = select.select([self.socket] + self.peers, [], [], 0)
         except select.error, e:
             warnings.warn('Error with network select: %s' % e)
             return processed
@@ -143,17 +150,17 @@ class SelectTCPTransport(Transport):
         
         for sock in inputready:
             if not self._is_connected and sock == self.socket:
-                logger.warning('%s accepting...' % ('Client' if self._is_connected else 'Server'))
+                logger.info('%s accepting...' % ('Client' if self._is_connected else 'Server'))
                 # if server socket is readable, we are ready to accept
                 clientsock, address = self.socket.accept()
-                logger.warning('accepted %s' % address)
+                logger.info('accepted %s' % str(address))
                 if not address in self.addrs:
                     self.addrs[address] = clientsock
                 if not clientsock in self.peers:
                     self.peers.append(clientsock)
                     self.buffer[clientsock] = ('', None)
             else:
-                logger.warning('%s receiving...' % ('Client' if self._is_connected else 'Server'))
+                logger.info('pid %s receiving from %s...' % (os.getpid(), sock.getsockname()))
                 # otherwise, we have some data to read from outside
                 try:
                     data = sock.recv(1024)
@@ -162,39 +169,32 @@ class SelectTCPTransport(Transport):
                     else:
                         # client closed connection, they are done sending the message
                         sock.close()
-                        self.peers.remove(sock)
-                        del self.buffer[sock]
-                        self.remove_from_addrs(sock)
+                        self.remove_socket(sock)
                 except socket.error, e:
                     warnings.warn('%s Error receiving data: %s' % ('Client' if self._is_connected else 'Server', e))
-                    if sock in self.peers:
-                        self.peers.remove(sock)
-                    if sock in self.buffer:
-                        del self.buffer[sock]
-                    self.remove_from_addrs(sock)
-                        
-                processed = True
+                    self.remove_socket(sock)
+            processed = True
         return processed
     def connect(self, host, port):
-        logger.info("Connecting to %s,%s" % (host, port))
+        logger.info("pid %s Connecting to %s,%s" % (os.getpid(), host, port))
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setblocking(False)
         self.socket.connect((host, port))
+        self.socket.setblocking(False)
         self._is_connected = True
     def disconnect(self):
         self.socket.close()
     def send(self, data, address=None, broadcast=False):
-        logger.warning('%s sending...' % ('Client' if self._is_connected else 'Server'))
+        logger.warning('pid %s sending...%s' % (os.getpid(), time.time()))
         data = struct.pack("!L",len(data)) + data
         sock = None
         if address:
+            logger.info(str(self.addrs))
             sock = self.addrs[address]
         if sock:
             sock.sendall(data)
         elif self._is_connected:
             # if we are the client, just send it to the server
-            sent = self.socket.sendall(data)
-            logger.warning('sent %s' % sent)
+            self.socket.sendall(data)
         elif broadcast:
             for s in self.peers:
                 s.sendall(data)

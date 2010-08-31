@@ -228,8 +228,10 @@ class TestNetwork(unittest.TestCase):
         assert not nmanager.find('pong_receiver').received_secret
         nmanager.add_process_group('a', PingReceiverTCP)
         nmanager.queue_message_to_group('a', PingMessage(secret=1234))
+        
         time.sleep(1)
         nmanager.tick()
+            
         assert nmanager.find('pong_receiver').received_secret == 1234
 
         # the server listens on an auto-gened port on localhost
@@ -241,8 +243,9 @@ class TestNetwork(unittest.TestCase):
         # the server tells the slave via IPC to test send a message
         nmanager.queue_message_to_group('a', TestMeMessage(port=port))
         
-        time.sleep(1)
-        nmanager.tick()
+        for i in range(2):
+            nmanager.tick()
+            time.sleep(.2)
         
         # confirms that the server can receive messages via nettwork
         assert nmanager.find('pong_receiver').syn_success == True
