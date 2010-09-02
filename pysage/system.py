@@ -294,6 +294,8 @@ class ActorManager(messaging.MessageManager):
         self.transport = transport_class()
         self.transport.connect(host, port)
         return self
+    def disconnect(self):
+        self.transport.disconnect()
     def send_message(self, msg, address=None):
         '''
         send a message to a network
