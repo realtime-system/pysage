@@ -58,9 +58,10 @@ Refer to :doc:`documentation <documentation>` for more.
 
 Status
 =======
-*stable release 1.5.4*
+*stable release 1.5.5*
 
-May 09th, 2010 - pysage grouping has been updated to provide better windows support, and many bug fixes
+ * September 10th, 2010 - select TCP transport added to transport collections; enabled atomic property type to use packing/unpacking
+ * May 09th, 2010 - pysage grouping has been updated to provide better windows support, and many bug fixes
 
 License
 =======

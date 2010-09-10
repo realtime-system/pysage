@@ -120,3 +120,46 @@ The ``add_process_group`` calls starts up a new pysage group called ``chefs``.  
 
 Questions?  Feel free to ask in our `mailing list <http://groups.google.com/group/pysage>`_.
 
+Another Example
+--------------------
+Here is an example of group messaging using custom packing/unpacking functions:
+::
+
+    from pysage import *
+    import json
+    import time, random
+    
+    class FoodAvailableMessage(Message):
+        properties = ['food']
+        types = ['S']
+        packet_type = 101 
+        def pack_food(self, food):
+            return json.dumps(food)
+        def unpack_food(self, food_s):
+            return json.loads(food_s)
+    
+    class Consumer(Actor):
+        subscriptions = ['FoodAvailableMessage']
+        def handle_FoodAvailableMessage(self, msg):
+            print 'Yummy! I had %d %s pancakes!' % (msg.get_property('food')['amount'], msg.get_property('food')['color'])
+    
+    class Chef(Actor):
+        def __init__(self):
+            self.last_sent = time.time()
+        def update(self):
+            '''every 2 seconds, this chef makes a random amount of pancakes'''
+            if time.time() - self.last_sent > 2.0:
+                mgr.queue_message_to_group(mgr.PYSAGE_MAIN_GROUP, FoodAvailableMessage(food={'amount': random.randint(0,10), 'color': 'red'}))
+                self.last_sent = time.time()
+    
+    mgr = ActorManager.get_singleton()
+    mgr.register_actor(Consumer())
+    
+    if __name__ == '__main__':
+        mgr.enable_groups()
+        mgr.add_process_group('chefs', Chef)      # spawns a new process that "ticks" independently
+        while True:
+            processed = mgr.tick()
+            time.sleep(.03)
+
+
