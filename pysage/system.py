@@ -308,6 +308,20 @@ class ActorManager(messaging.MessageManager):
             raise PacketTypeError('Packet_type must be specified by class "%s"' % type(msg))
         self.transport.send(msg.to_string(), address=address)
         return self
+    def send_message_with_transport(self, msg, transport, address=None):
+        '''
+        send a message to a network with a externally instanced transport.  Mainly used for connecting to multiple servers.  
+        The specified transport can only be used here to send.
+        
+        :Parameters:
+            - `msg`: the message to send
+            - `trasnport`: the transport instance to send the message with
+            - `address`: the address to send the message to
+        '''
+        if not type(msg).packet_type:
+            raise PacketTypeError('Packet_type must be specified by class "%s"' % type(msg))
+        transport.send(msg.to_string(), address=address)
+        return self
     def queue_message_to_group(self, group, msg):
         '''message is serialized and sent to the group (process) specified'''
         if not self.groups.has_key(group):
