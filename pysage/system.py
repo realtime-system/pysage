@@ -494,9 +494,10 @@ class Message(messaging.Message):
                     self.set_property(name, values)
             # if not composite, just unpack them and set the property
             else:
+                unpack_func = getattr(self, 'unpack_' + name, None)
                 value, size = self.unpack_attr(_type, data, pos)
                 pos += size
-                self.set_property(name, value)
+                self.set_property(name, unpack_func(value))
         if pos != len(data):
             raise PacketError('incorrect length upon unpacking %s: got %i expected %i' % (self.__class__.__name__, len(data), pos))
         return self
