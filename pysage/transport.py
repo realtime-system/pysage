@@ -13,6 +13,9 @@ except ImportError:
 else:
     RAKNET_AVAILABLE = True
     
+class NotConnectedException(Exception):
+    pass
+    
 logger = processing.get_logger()
 
 class Transport(object):
@@ -174,10 +177,11 @@ class SelectTCPTransport(Transport):
                         self.process_received_data(sock, addr, data, packet_handler)
                     else:
                         # client closed connection, they are done sending the message
+                        logger.error('Client %s disconnected' % str(addr))
                         sock.close()
                         self.remove_socket(sock)
                 except socket.error, e:
-                    logger.error('%s Error receiving data: %s' % ('Client' if self._is_connected else 'Server', e))
+                    logger.error('Server had error receiving data: %s' % e)
                     sock.close()
                     self.remove_socket(sock)
             processed = True
@@ -237,7 +241,10 @@ class SelectTCPTransport(Transport):
         sock = None
         if address:
             logger.debug('%s\'s addrs: %s' % ('server' if self.is_server() else 'client', self.addrs))
-            sock = self.addrs[address]
+            try:
+                sock = self.addrs[address]
+            except KeyError, e:
+                raise NotConnectedException("Peer %s is not connected." % str(address))
         if sock:
             sock.sendall(data)
         elif self.is_client():
