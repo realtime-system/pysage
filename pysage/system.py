@@ -465,7 +465,11 @@ class Message(messaging.Message):
                         buf = self.pack_attr(_type[j], buf, v, name)
             # for mono types, just pack it
             else:
-                buf = self.pack_attr(_type, buf, value, name)
+                pack_func = getattr(self, 'pack_' + name, None)
+                if pack_func:
+                    buf = self.pack_attr(_type, buf, pack_func(value), name)
+                else:
+                    buf = self.pack_attr(_type, buf, value, name)
         return buf
     def from_string(self, data):
         '''unpacks the property data into the object, from binary stream'''
