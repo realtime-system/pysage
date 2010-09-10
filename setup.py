@@ -10,7 +10,7 @@
 
 from distutils.core import setup
 setup(name='pysage',
-      version='1.5.4',
+      version='1.5.5',
       packages=['pysage'],
       
     # metadata for upload to PyPI

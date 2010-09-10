@@ -116,7 +116,7 @@ Now we just need to create a pysage group to spawn some "chefs" and watch the sh
 
 The ``add_process_group`` calls starts up a new pysage group called ``chefs``.  The "Chef" actor class is our default actor in this new group.  The group will automatically spawn a "Chef" actor once it's initialized itself.  Internally, calling ``add_process_group`` will spawn a child OS process for the specified group that all actors that belong to that group will reside.
 
-IMPORTANT: You need to make sure that calls to ``enable_groups`` and ``add_process_group`` are within the ``if __name__ == '__main__'`` scope.  This ensures that on windows systems you won't have a loop spawning processes endlessly.
+**IMPORTANT**: You need to make sure that calls to ``enable_groups`` and ``add_process_group`` are within the ``if __name__ == '__main__'`` scope.  This ensures that on windows systems you won't have a loop spawning processes endlessly.
 
 Questions?  Feel free to ask in our `mailing list <http://groups.google.com/group/pysage>`_.
 
