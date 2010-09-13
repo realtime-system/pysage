@@ -247,7 +247,7 @@ class ActorManager(messaging.MessageManager):
                 if cut_off_time and util.get_time() > cut_off_time:
                     break
 
-        self.log(logging.DEBUG, 'process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
+#        self.log(logging.DEBUG, 'process "%s" queue length: %s' % (processing.get_pid(processing.current_process()), self.queue_length))
         
         # process all messages first
         new_max_time = None
@@ -336,7 +336,6 @@ class ActorManager(messaging.MessageManager):
         return self
     def packet_handler(self, packet, address):
         packetid = ord(packet[0])
-        processing.get_logger().debug('Received packet of type "%s"' % type)
         if packetid < 100:
             processing.get_logger().warning('internal packet unhandled: "%s"' % self.transport.packet_type_info(packetid))
             return self
