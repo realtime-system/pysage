@@ -40,7 +40,7 @@ class MessageReceiver(object):
         if hasattr(self, method):
             return getattr(self, method)(msg)
         else:
-            logger.info("Actor %s's %s method wasn't found.  Message %s skipped" % (self, method, msg))
+            logger.info("Actor %s's '%s' method wasn't found.  Message '%s' skipped" % (self, method, msg))
             return False
     def update(self, evt=None):
         pass
