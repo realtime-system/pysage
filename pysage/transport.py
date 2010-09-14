@@ -177,7 +177,7 @@ class SelectTCPTransport(Transport):
                         self.process_received_data(sock, addr, data, packet_handler)
                     else:
                         # client closed connection, they are done sending the message
-                        logger.error('Client %s disconnected' % str(addr))
+                        logger.debug('Client %s disconnected' % str(addr))
                         sock.close()
                         self.remove_socket(sock)
                 except socket.error, e:
