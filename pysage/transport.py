@@ -194,7 +194,7 @@ class SelectTCPTransport(Transport):
         else:
             return
     def poll_client(self, packet_handler):
-        logger.debug('client pid %s polling...' % os.getpid())
+#        logger.debug('client pid %s polling...' % os.getpid())
         processed = False
         try:
             inputready, outputready, exceptready = select.select([self.socket], [], [], 0)
@@ -236,7 +236,7 @@ class SelectTCPTransport(Transport):
         self._is_connected = False
         self._is_server = False
     def send(self, data, address=None, broadcast=False):
-        logger.debug('%s pid %s sending...%s' % ('server' if self.is_server() else 'client', os.getpid(), time.time()))
+#        logger.debug('%s pid %s sending...%s' % ('server' if self.is_server() else 'client', os.getpid(), time.time()))
         data = struct.pack("!L",len(data)) + data
         sock = None
         if address:
