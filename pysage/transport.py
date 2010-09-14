@@ -145,7 +145,7 @@ class SelectTCPTransport(Transport):
         if sock in self.buffer:
             del self.buffer[sock]
     def poll_server(self, packet_handler):
-        logger.debug('server pid %s polling...' % os.getpid())
+#        logger.debug('server pid %s polling...' % os.getpid())
         processed = False
         try:
             inputready, outputready, exceptready = select.select([self.socket] + self.peers, [], [], 0)
