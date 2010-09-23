@@ -163,3 +163,71 @@ Here is an example of group messaging using custom packing/unpacking functions:
             time.sleep(.03)
 
 
+Dual Group Example
+---------------------
+So far, we've only messed around with just one group.  Here is a modified example of our chef and consumer example above, with the addition of a ``Waiter``.  
+::
+
+    from pysage import *
+    import time, random
+
+    mgr = ActorManager.get_singleton()
+    
+    class FoodOnTableMessage(Message):
+       properties = ['amount']
+       types = ['i']
+       packet_type = 101 
+    
+    class FoodAvailableMessage(Message):
+       properties = ['amount']
+       types = ['i']
+       packet_type = 102 
+    
+    class Consumer(Actor):
+       subscriptions = ['FoodOnTableMessage']
+       def handle_FoodOnTableMessage(self, msg):
+           print 'Yummy! I had %d pancakes!' % (msg.get_property('amount'))
+    
+    class Waiter(Actor):
+       subscriptions = ['FoodAvailableMessage']
+       def __init__(self):
+           self.last_sent = time.time()
+           self.PancakeCount = 0 
+       def handle_FoodAvailableMessage(self, msg):
+           self.PancakeCount = self.PancakeCount + msg.get_property('amount')
+       def update(self):
+           '''every 2 seconds, this waiter delivers 5 or fewer pancakes'''
+           if time.time() - self.last_sent > 2.0:
+               self.last_sent = time.time()
+               if self.PancakeCount > 0:
+                   DeliverCount=self.PancakeCount
+                   if DeliverCount > 5:
+                       DeliverCount = 5 
+                   self.PancakeCount = self.PancakeCount - DeliverCount
+                   print 'Here are your %d pancakes, sir!' % (DeliverCount)
+                   mgr.queue_message_to_group('Consumers', FoodOnTableMessage(amount=DeliverCount))
+    
+    class Chef(Actor):
+       def __init__(self):
+           self.last_sent = time.time()
+       def update(self):
+           '''every 4 seconds, this chef makes a random amount of pancakes'''
+           if time.time() - self.last_sent > 4.0:
+               PancakeCount = random.randint(1,12)
+               print '%d pancakes up!!' % PancakeCount
+               mgr.queue_message_to_group(mgr.PYSAGE_MAIN_GROUP, FoodAvailableMessage(amount=PancakeCount))
+               self.last_sent = time.time()
+    
+
+    if __name__ == '__main__':
+       mgr.register_actor(Waiter())
+       mgr.enable_groups()
+       mgr.add_process_group('chefs', Chef)      # spawns a new process that "ticks" independently
+       mgr.add_process_group('Consumers', Consumer)      # spawns a new process that "ticks" independently
+       while True:
+           processed = mgr.tick()
+           time.sleep(.03)
+
+This example illustrates an important idea.  The "main" group (``mgr.PYSAGE_MAIN_GROUP``) here is essentially proxying messages between the two child groups.  For safety and simplicity, child groups cannot talk to each other directly.  In this example, the waiter which resides in the main group is happy carrying messages from the "chef" group to the "consumer" group.  
+
+
