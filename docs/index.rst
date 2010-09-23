@@ -63,6 +63,10 @@ Status
  * September 10th, 2010 - select TCP transport added to transport collections; enabled atomic property type to use packing/unpacking
  * May 09th, 2010 - pysage grouping has been updated to provide better windows support, and many bug fixes
 
+Contributors
+=============
+ * Jay Herrmann
+
 License
 =======
 pysage uses MIT license.  
