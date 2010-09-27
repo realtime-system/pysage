@@ -57,7 +57,9 @@ class DefaultActorFailed(Exception):
     pass
 
 class GroupFailed(Exception):
-    pass
+    def __init__(self, msg, group_name):
+        Exception.__init__(self, msg)
+        self.group_name = group_name
 
 class WrongMessageTypeSpecified(Exception):
     pass
@@ -230,7 +232,7 @@ class ActorManager(messaging.MessageManager):
         if self.is_main_process:
             for group, (p, _id, switch) in self.groups.items():    
                 if not processing.is_alive(p):
-                    raise GroupFailed('Group "%s" failed' % group)
+                    raise GroupFailed('Group "%s" failed' % group, group)
 
         # always poll at least one ipc message here
         has_more = True

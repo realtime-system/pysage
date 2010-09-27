@@ -134,6 +134,10 @@ class TestGroupsProcess(unittest.TestCase):
         nmanager.add_process_group('a', BadActor)
         time.sleep(1)
         self.assertRaises(GroupFailed, nmanager.tick)
+        try:
+            nmanager.tick()
+        except GroupFailed, e:
+            assert e.group_name == 'a'
     def test_proper_transport_cleanup_upon_removegroup(self):
         assert not nmanager.ipc_transport.peers
         nmanager.add_process_group('b')
