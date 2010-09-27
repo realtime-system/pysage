@@ -138,6 +138,7 @@ class TestGroupsProcess(unittest.TestCase):
             nmanager.tick()
         except GroupFailed, e:
             assert e.group_name == 'a'
+            nmanager.remove_process_group('a')
     def test_proper_transport_cleanup_upon_removegroup(self):
         assert not nmanager.ipc_transport.peers
         nmanager.add_process_group('b')
