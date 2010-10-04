@@ -59,6 +59,10 @@ class BadActor(Actor):
         Actor.__init__(self)
         raise Exception('I am supposed to fail')
     
+class BadActorPostInit(Actor):
+    def update(self):
+        raise Exception('I am supposed to fail')
+    
 class PongReceiver(Actor):
     subscriptions = ['PongMessage']
     def __init__(self):
@@ -132,6 +136,16 @@ class TestGroupsProcess(unittest.TestCase):
     def test_fail_default_actor(self):
         '''the main process should be aware of subprocesses that failed to initialize'''
         nmanager.add_process_group('a', BadActor)
+        time.sleep(1)
+        self.assertRaises(GroupFailed, nmanager.tick)
+        try:
+            nmanager.tick()
+        except GroupFailed, e:
+            assert e.group_name == 'a'
+            nmanager.remove_process_group('a')
+    def test_fail_post_init_default_actor(self):
+        '''the main process should be aware of subprocesses that failed to tick'''
+        nmanager.add_process_group('a', BadActorPostInit)
         time.sleep(1)
         self.assertRaises(GroupFailed, nmanager.tick)
         try:
