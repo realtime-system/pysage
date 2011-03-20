@@ -1,4 +1,6 @@
-# client.py
+# example made by Afan Olovcic afanolovcic@gmail.com
+# ChatClientBot.py
+
 from pysage import *
 from pysage import transport
 from packetType import *

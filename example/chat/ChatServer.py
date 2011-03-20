@@ -1,3 +1,7 @@
+# example made by Afan Olovcic afanolovcic@gmail.com
+# in real life for chat is better to use transport.SelectTCPTransport with UDP some message can be undelivered
+# ChatServer.py
+
 from pysage import *
 from pysage import transport
 from packetType import *
@@ -33,7 +37,7 @@ class ChatMessageHandler(Actor):
         return True
     
 if __name__ == '__main__':
-    mgr.listen('localhost', 8000, transport.SelectUDPTransport)
+    mgr.listen('localhost', 8000, transport.SelectUDPTransport)#transport.SelectTCPTransport 
     mgr.register_actor(ChatMessageHandler())
 
     while True:
