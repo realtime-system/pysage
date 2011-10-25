@@ -7,6 +7,7 @@ import collections
 import time
 import util
 import process as processing
+import inspect
 
 logger = processing.get_logger()
 
@@ -126,6 +127,7 @@ class MessageManager(util.ProcessLocalSingleton):
         # double buffering to avoid infinite cycles
         self.active_queue = collections.deque()
         self.processing_queue = collections.deque()
+        self.coroutines = []
     def validate_type(self, message_type):
         if not message_type:
             return False
@@ -133,6 +135,17 @@ class MessageManager(util.ProcessLocalSingleton):
             return True
     def validate_message(self, msg):
         return msg.validate()
+    def process_coroutine(self, c):
+        '''
+        run the coroutine once
+        if it finished, return None
+        else, return the coroutine itself
+        '''
+        try:
+            c.next()
+        except StopIteration:
+            return None
+        return c
     def tick(self, max_time=None):
         '''
         Process queued messages.
@@ -148,23 +161,42 @@ class MessageManager(util.ProcessLocalSingleton):
         # swap queues and clear the active_queue
         self.active_queue, self.processing_queue = self.processing_queue, self.active_queue
         self.active_queue.clear()
+        coroutines_to_add = []
         startTime = time.time()
+        
+        # first process each existing coroutine once exactly
+        self.coroutines = [x for x in self.coroutines if self.process_coroutine(x)]
+        
         while len(self.processing_queue):
             # always pop the message off the queue, if there is no listeners for this message yet
             # then the message will be dropped off the queue
             msg = self.processing_queue.popleft()
             # for receivers that handle all messages let them handle this
             for r in self.message_receiver_map[WildCardMessageType]:
-                r.handle_message(msg)
+                res = r.handle_message(msg)
+                # coroutines will be run 
+                if inspect.isgenerator(res):
+                    c = self.process_coroutine(res)
+                    if c:
+                        coroutines_to_add.append(c)
             # now pass msg to message receivers that subscribed to this message type
             for r in self.message_receiver_map.get(msg.message_type, []):
                 if not self.designated_to_handle(r, msg):
                     continue
-                # finish this message if it was handled or had designated receiver
-                if r.handle_message(msg) or msg.receiverID:
-                    break
+                res = r.handle_message(msg)
+                if inspect.isgenerator(res):
+                    c = self.process_coroutine(res)
+                    if c:
+                        coroutines_to_add.append(c)
+                else:
+                    # finish this message if it was handled or had designated receiver
+                    if res or msg.receiverID:
+                        break
             if max_time and time.time() - startTime > max_time:
                 break
+            
+        # queue up all pending coroutines
+        self.coroutines.extend(coroutines_to_add)
             
         flushed = len(self.processing_queue) == 0
         # push any left over messages to the active queue
