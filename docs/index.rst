@@ -54,12 +54,41 @@ pysage allows you to use this same simple API, for messaging across processes an
 
 pysage does not confine you to the constraints of the "actor model".  For example, the "grouping" concept allows many actors to reside in the same process.  This allows you to avoid spawning too many os processes and reduce IPC overhead.  
 
+Here's another example of using coroutines to faciliate asynchnous message processing::
+
+    import time
+    from pysage import Actor, ActorManager, Message
+    
+    mgr = ActorManager.get_singleton()
+    
+    class TimeBombMessage(Message):
+        properties = ['damage']
+    
+    class Player(Actor):
+        subscriptions = ['TimeBombMessage']
+        def handle_TimeBombMessage(self, msg):
+            print 'thinking'
+            yield
+            print 'thinking'
+            yield
+            print 'I took %s damage from the bomb' % msg.get_property('damage')
+    
+    mgr.register_actor(Player(), 'player1')
+    mgr.queue_message(TimeBombMessage(damage=10))
+    
+    while True:
+        processed = mgr.tick()
+        # uncomment below to see the timing of coroutines
+        # print 'ticked'
+        time.sleep(.03)
+
 Refer to :doc:`documentation <documentation>` for more.
 
 Status
 =======
 *stable release 1.5.5*
 
+ * October 25th, 2011 - coroutine support and mongodb as transport
  * September 10th, 2010 - select TCP transport added to transport collections; enabled atomic property type to use packing/unpacking
  * May 09th, 2010 - pysage grouping has been updated to provide better windows support, and many bug fixes
 
