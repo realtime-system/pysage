@@ -95,6 +95,39 @@ class SelectUDPTransport(Transport):
     @property
     def address(self):
         return self.socket.getsockname()
+    
+class MongoDBTransport(Transport):
+    def __init__(self):
+        import bson
+        self.connection = None
+        self.database = None
+        self.collection = None
+        self._is_connected = False
+        self.get_time = bson.code.Code('function(){return new Date()}')
+    def listen(self, host, db, collection):
+        import pymongo
+        self.connection = pymongo.Connection(host)
+        self.database = getattr(self.connection, db)
+        self.collection = getattr(self.database, collection)
+    def poll(self, packet_handler):
+        import pymongo
+        processed = False
+        msg = self.collection.find_one(sort=[('timestamp', pymongo.ASCENDING)])
+        if msg:
+            packet_handler(msg, None)
+            processed = True
+        return processed
+    def connect(self, host, db, collection):
+        import pymongo
+        self.connection = pymongo.Connection(host)
+        self.collection = getattr(getattr(self.connection, db), collection)
+    def disconnect(self):
+        pass
+    def send(self, data, address=None, broadcast=False):
+        self.collection.insert({'timestamp': self.database.eval(self.get_time), 'message': data})
+    @property
+    def address(self):
+        pass
 
 class SelectTCPTransport(Transport):
     def __init__(self):
