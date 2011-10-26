@@ -107,8 +107,8 @@ class MongoDBTransport(Transport):
     def listen(self, host, db, collection):
         import pymongo
         self.connection = pymongo.Connection(host)
-        self.database = getattr(self.connection, db)
-        self.collection = getattr(self.database, collection)
+        self.database = self.connection[db]
+        self.collection = self.database[collection]
     def poll(self, packet_handler):
         import pymongo
         processed = False
