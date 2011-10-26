@@ -289,7 +289,7 @@ class ActorManager(messaging.MessageManager):
         self.transport = transport_class()
         self.transport.listen(connection_handler=connection_handler, **kws)
         return self
-    def connect(self, host, port, transport_class=transport.SelectUDPTransport):
+    def connect(self, transport_class=transport.SelectUDPTransport, **kws):
         '''
         connects to a server so that message communication can be started
 
@@ -298,7 +298,7 @@ class ActorManager(messaging.MessageManager):
             - `port`: the port for which to connect to
         '''
         self.transport = transport_class()
-        self.transport.connect(host, port)
+        self.transport.connect(**kws)
         return self
     def disconnect(self):
         self.transport.disconnect()

@@ -93,7 +93,7 @@ class PingReceiver(Actor):
         return True
     def handle_TestMeMessage(self, msg):
         nmanager = ActorManager.get_singleton()
-        nmanager.connect('127.0.0.1', msg.get_property('port'))
+        nmanager.connect(host='127.0.0.1', port=msg.get_property('port'))
         nmanager.send_message(SYNMessage(port=nmanager.transport.address[1]), address=('127.0.0.1', msg.get_property('port')))
         return True
     def handle_SYNACKMessage(self, msg):
@@ -108,7 +108,7 @@ class PingReceiverTCP(Actor):
         return True
     def handle_TestMeMessage(self, msg):
         nmanager = ActorManager.get_singleton()
-        nmanager.connect('127.0.0.1', msg.get_property('port'), transport.SelectTCPTransport)
+        nmanager.connect(host='127.0.0.1', port=msg.get_property('port'), transport_class=transport.SelectTCPTransport)
         nmanager.send_message(SYNMessage(port=nmanager.transport.address[1]))
         return True
     def handle_SYNACKMessage(self, msg):
