@@ -122,7 +122,10 @@ class MongoDBTransport(Transport):
         self.connection = pymongo.Connection(host)
         self.collection = getattr(getattr(self.connection, db), collection)
     def disconnect(self):
-        pass
+        self.connection.disconnect()
+        self.connection = None
+        self.database = None
+        self.collection = None
     def send(self, data, address=None, broadcast=False):
         self.collection.insert({'timestamp': self.database.eval(self.get_time), 'message': data})
     @property

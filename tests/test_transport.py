@@ -1,5 +1,5 @@
 # test_transport.py
-from pysage.transport import SelectUDPTransport
+from pysage.transport import SelectUDPTransport, MongoDBTransport
 import unittest
 import time
 
@@ -24,6 +24,27 @@ class TestTransportModule(unittest.TestCase):
         
         assert h.received == '1234'
         assert server.peers.has_key(client.address)
+        
+        server.disconnect()
+    def test_mongodb_transport(self):
+        try:
+            import pymongo
+        except:
+            print '* pymongo is not available.  Passing test.'
+            return
+        h = handler()
+        server = MongoDBTransport()
+        client = MongoDBTransport()
+        
+        server.listen('localhost', 'test', 'test')
+#        host, port = server.address
+        client.connect('localhost', 'test', 'test')
+        client.send('1234')
+        time.sleep(.5)
+        server.poll(h.handle)
+        
+        assert h.received == '1234'
+#        assert server.peers.has_key(client.address)
         
         server.disconnect()
         client.disconnect()
