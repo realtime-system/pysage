@@ -120,7 +120,8 @@ class MongoDBTransport(Transport):
     def connect(self, host, db, collection):
         import pymongo
         self.connection = pymongo.Connection(host)
-        self.collection = getattr(getattr(self.connection, db), collection)
+        self.database = self.connection[db]
+        self.collection = self.database[collection]
     def disconnect(self):
         self.connection.disconnect()
         self.connection = None
