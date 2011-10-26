@@ -196,7 +196,7 @@ class TestNetwork(unittest.TestCase):
         assert nmanager.find('pong_receiver').received_secret == 1234
 
         # the server listens on an auto-gened port on localhost
-        nmanager.listen('localhost', 0)
+        nmanager.listen(host='localhost', port=0)
 
         host, port = nmanager.transport.address
 
@@ -236,7 +236,7 @@ class TestNetwork(unittest.TestCase):
         assert nmanager.find('pong_receiver').received_secret == 1234
 
         # the server listens on an auto-gened port on localhost
-        nmanager.listen('127.0.0.1', 0, transport.SelectTCPTransport)
+        nmanager.listen(host='127.0.0.1', port=0, transport_class=transport.SelectTCPTransport)
 
         host, port = nmanager.transport.address
         print 'server bound to %s:%s' % (host, port)
@@ -276,7 +276,7 @@ class TestNetwork(unittest.TestCase):
         assert nmanager.find('pong_receiver').received_secret == 1234
 
         # the server listens on an auto-gened port on localhost
-        nmanager.listen('127.0.0.1', 0, transport.SelectTCPTransport)
+        nmanager.listen(host='127.0.0.1', port=0, transport_class=transport.SelectTCPTransport)
 
         host, port = nmanager.transport.address
 
@@ -313,7 +313,7 @@ class TestNetwork(unittest.TestCase):
         assert nmanager.find('pong_receiver').received_secret == 1234
 
         # the server listens on an auto-gened port on localhost
-        nmanager.listen('localhost', 0)
+        nmanager.listen(host='localhost', port=0)
 
         host, port = nmanager.transport.address
 

@@ -275,7 +275,7 @@ class ActorManager(messaging.MessageManager):
         self.ipc_transport.connect(server_addr)
         self._should_quit = _should_quit
         self.groups[self.PYSAGE_MAIN_GROUP] = (None,server_addr,None)
-    def listen(self, host, port, transport_class=transport.SelectUDPTransport):
+    def listen(self, transport_class=transport.SelectUDPTransport, **kws):
         '''
         starts listening for network messages given the port and the transport class
 
@@ -287,7 +287,7 @@ class ActorManager(messaging.MessageManager):
         def connection_handler(client_address):
             self.log(logging.DEBUG, 'connected to client: %s' % client_address)
         self.transport = transport_class()
-        self.transport.listen(host, port, connection_handler)
+        self.transport.listen(connection_handler=connection_handler, **kws)
         return self
     def connect(self, host, port, transport_class=transport.SelectUDPTransport):
         '''
