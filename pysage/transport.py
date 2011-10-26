@@ -114,7 +114,7 @@ class MongoDBTransport(Transport):
         processed = False
         msg = self.collection.find_one(sort=[('timestamp', pymongo.ASCENDING)])
         if msg:
-            packet_handler(msg, None)
+            packet_handler(msg['message'], None)
             processed = True
         return processed
     def connect(self, host, db, collection):
