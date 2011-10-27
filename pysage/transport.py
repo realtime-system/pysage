@@ -104,7 +104,7 @@ class MongoDBTransport(Transport):
         self.collection = None
         self._is_connected = False
         self.get_time = bson.code.Code('function(){return new Date()}')
-    def listen(self, host, db, collection):
+    def listen(self, host, db, collection, connection_handler=None):
         import pymongo
         self.connection = pymongo.Connection(host)
         self.database = self.connection[db]
@@ -116,6 +116,7 @@ class MongoDBTransport(Transport):
         if msg:
             packet_handler(msg['message'], None)
             processed = True
+            self.collection.remove(msg['_id'])
         return processed
     def connect(self, host, db, collection):
         import pymongo
@@ -128,7 +129,8 @@ class MongoDBTransport(Transport):
         self.database = None
         self.collection = None
     def send(self, data, address=None, broadcast=False):
-        self.collection.insert({'timestamp': self.database.eval(self.get_time), 'message': data})
+        import bson
+        self.collection.insert({'timestamp': self.database.eval(self.get_time), 'message': bson.Binary(data=data)})
     @property
     def address(self):
         pass
