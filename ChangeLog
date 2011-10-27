@@ -1,4 +1,6 @@
 ==Change Log==
+=== 1.6.0==
+  * add coroutine and mongodb support
 === 1.5.4 == 
   * adding a group in forking systems now properly cleans up manager in child processes
   * correct code to ensure process singleton manager

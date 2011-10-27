@@ -15,6 +15,8 @@ It also extends the `actor model <http://en.wikipedia.org/wiki/Actor_model>`_ to
   * grouping - actors can be partitioned into groups that are run in separate os processes
   * process-local singleton manager - actor registration, discovery, message propagation
   * publisher/subscriber pattern built-in
+  * message handlers can be a coroutine / generator
+  * optionally use mongodb as the message transport / queue
 
 pysage strives to stay thin and lightweight.
 
@@ -86,7 +88,7 @@ Refer to :doc:`documentation <documentation>` for more.
 
 Status
 =======
-*stable release 1.5.5*
+*stable release 1.6.0*
 
  * October 25th, 2011 - coroutine support and mongodb as transport
  * September 10th, 2010 - select TCP transport added to transport collections; enabled atomic property type to use packing/unpacking
