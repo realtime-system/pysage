@@ -302,7 +302,7 @@ class ActorManager(messaging.MessageManager):
         return self
     def disconnect(self):
         self.transport.disconnect()
-    def send_message(self, msg, address=None):
+    def send_message(self, msg, address=None, **kws):
         '''
         send a message to a network
         
@@ -312,9 +312,9 @@ class ActorManager(messaging.MessageManager):
         '''
         if not type(msg).packet_type:
             raise PacketTypeError('Packet_type must be specified by class "%s"' % type(msg))
-        self.transport.send(msg.to_string(), address=address)
+        self.transport.send(msg.to_string(), address=address, **kws)
         return self
-    def send_message_with_transport(self, msg, transport, address=None):
+    def send_message_with_transport(self, msg, transport, address=None, **kws):
         '''
         send a message to a network with a externally instanced transport.  Mainly used for connecting to multiple servers.  
         The specified transport can only be used here to send.
@@ -326,7 +326,7 @@ class ActorManager(messaging.MessageManager):
         '''
         if not type(msg).packet_type:
             raise PacketTypeError('Packet_type must be specified by class "%s"' % type(msg))
-        transport.send(msg.to_string(), address=address)
+        transport.send(msg.to_string(), address=address, **kws)
         return self
     def queue_message_to_group(self, group, msg):
         '''message is serialized and sent to the group (process) specified'''
